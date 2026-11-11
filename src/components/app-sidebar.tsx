@@ -6,6 +6,7 @@ import {
   IconDots,
   IconFileImport,
   IconListDetails,
+  IconLogout,
   IconLayoutDashboard,
   IconReceipt2,
   IconRepeat,
@@ -113,7 +114,14 @@ function NavLink({ item, path }: { item: NavItem; path: string }) {
   )
 }
 
-export function AppSidebar({ path }: { path: string }) {
+export function AppSidebar({
+  path,
+  canSignOut = false,
+}: {
+  path: string
+  /** Show Sign out, when a household password is set. */
+  canSignOut?: boolean
+}) {
   const { isMobile, setOpenMobile } = useSidebar()
   return (
     // On phones the menu opens from the right, beside the More tab.
@@ -167,6 +175,16 @@ export function AppSidebar({ path }: { path: string }) {
             {tools.map((item) => (
               <NavLink key={item.href} item={item} path={path} />
             ))}
+            {canSignOut && (
+              <SidebarMenuItem>
+                <form method="post" action="/logout">
+                  <SidebarMenuButton type="submit" tooltip="Sign out">
+                    <IconLogout />
+                    <span>Sign out</span>
+                  </SidebarMenuButton>
+                </form>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarFooter>
       </nav>

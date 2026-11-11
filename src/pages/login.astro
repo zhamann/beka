@@ -1,0 +1,90 @@
+---
+import { BekaMark } from "@/components/beka-mark"
+import { PasswordInput } from "@/components/password-input"
+import { IconLock } from "@tabler/icons-react"
+
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
+import Layout from "@/layouts/main.astro"
+import { readBody } from "@/server/body"
+import {
+  attemptSignIn,
+  householdPassword,
+  safeNext,
+  SESSION_COOKIE,
+  sessionToken,
+} from "@/server/auth"
+
+const password = householdPassword()
+const next = safeNext(Astro.url.searchParams.get("next"))
+if (!password) return Astro.redirect(next)
+
+let failed = false
+let busy = false
+if (Astro.request.method === "POST") {
+  const body = await readBody(Astro.request, 64 * 1024)
+  if (!body) return new Response("That's too much to send.", { status: 413 })
+  const form = new URLSearchParams(new TextDecoder().decode(body))
+  const result = await attemptSignIn(password, form.get("password") ?? "")
+  if (result === "ok") {
+    Astro.cookies.set(SESSION_COOKIE, sessionToken(password), {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: Astro.url.protocol === "https:",
+      maxAge: 60 * 60 * 24 * 400,
+    })
+    return Astro.redirect(next)
+  }
+  failed = result === "wrong"
+  busy = result === "busy"
+  Astro.response.status = busy ? 429 : 401
+}
+---
+
+<Layout title="Sign in">
+  <main class="flex min-h-svh items-center justify-center p-4">
+    <Card className="w-full max-w-sm">
+      <CardHeader>
+        <div class="mb-2 flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <BekaMark className="size-6" />
+        </div>
+        <CardTitle className="font-heading text-2xl">Beka</CardTitle>
+        <CardDescription>Enter your household's password.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form method="post" class="grid gap-4">
+          <Field data-invalid={failed || busy ? true : undefined}>
+            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <PasswordInput
+              client:load
+              id="password"
+              name="password"
+              autoComplete="current-password"
+              aria-invalid={failed || busy ? true : undefined}
+              required
+              autoFocus
+            />
+            {failed && <FieldError>That password isn't right.</FieldError>}
+            {busy && (
+              <FieldError>
+                Too many sign-in attempts. Try again in a minute.
+              </FieldError>
+            )}
+          </Field>
+          <Button type="submit">
+            <IconLock />
+            Sign in
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  </main>
+</Layout>

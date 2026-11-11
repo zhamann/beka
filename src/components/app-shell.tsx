@@ -59,12 +59,15 @@ export function AppShell({
   path,
   sidebarOpen,
   sidebarRemembered,
+  canSignOut,
   children,
 }: {
   path: string
   sidebarOpen: boolean
   /** Whether someone has opened or closed the sidebar on this device. */
   sidebarRemembered: boolean
+  /** Whether a household password is set, so there's a session to end. */
+  canSignOut: boolean
   children?: React.ReactNode
 }) {
   return (
@@ -77,7 +80,7 @@ export function AppShell({
         >
           Skip to content
         </a>
-        <AppSidebar path={path} />
+        <AppSidebar path={path} canSignOut={canSignOut} />
         <SidebarInset className="min-w-0">
           <div className="hidden px-4 pt-3 md:block">
             <SidebarTrigger aria-label="Toggle sidebar" />

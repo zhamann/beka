@@ -1,8 +1,9 @@
 ---
+import { IconLogout } from "@tabler/icons-react"
 import { cn } from "cn"
 
 import { AgentAccess } from "@/components/agent-access"
-
+import { BackupSettings } from "@/components/backup-settings"
 import { FreshnessSettings } from "@/components/freshness-settings"
 import { HouseholdMembers } from "@/components/household-members"
 import { LinkItem } from "@/components/link-item"
@@ -14,7 +15,8 @@ import { ItemGroup } from "@/components/ui/item"
 import AppLayout from "@/layouts/app.astro"
 import { parseTheme, THEME_COOKIE } from "@/lib/theme"
 import { listAgentKeys } from "@/server/agent/keys"
-
+import { householdPassword } from "@/server/auth"
+import { listBackups } from "@/server/backups"
 import { listRewardCategories } from "@/server/cards"
 import { listCategories } from "@/server/categories"
 import { getDatabase } from "@/server/database"
@@ -28,6 +30,7 @@ const sections = [
   ["categories", "Categories and history"],
   ["reminders", "Reminders"],
   ["agent", "Agent access"],
+  ["backups", "Backups"],
 ] as const
 const members = listMembers(db)
 const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value)
@@ -40,7 +43,7 @@ const rewardCount = listRewardCategories(db).length
 <AppLayout title="Settings">
   <PageHeader
     title="Settings"
-    description="Your household, how Beka looks and sorts things, and the reminders and agent access behind it."
+    description="Your household, how Beka looks and sorts things, and the reminders, agent access, and backups behind it."
   />
   <nav
     aria-label="Settings sections"
@@ -104,6 +107,26 @@ const rewardCount = listRewardCategories(db).length
   >
     <AgentAccess client:load keys={listAgentKeys(db)} />
   </Section>
+  <Section
+    id="backups"
+    title="Backups"
+    description="A copy of everything is made each day and kept for 30 days, in the data folder's backups folder."
+  >
+    <BackupSettings client:load backups={listBackups()} />
+  </Section>
+  {householdPassword() && (
+    <Section title="Sign-in">
+      <form method="post" action="/logout">
+        <button
+          type="submit"
+          class={cn(buttonVariants({ variant: "secondary" }))}
+        >
+          <IconLogout />
+          Sign out on this device
+        </button>
+      </form>
+    </Section>
+  )}
 </AppLayout>
 
 <script>
