@@ -61,6 +61,10 @@ The app is built for any household that self-hosts it, so every optional detail 
 - Imports call `linkRecurring` and then `suggestRecurring`, which saves `suggested` rows for people to confirm or dismiss. Detection takes every charge for bills that swing (one per period) and amount clusters otherwise, and passes `on` (today) so tests don't depend on the clock.
 - Card annual fees are kept in step by `syncCardFee` whenever a card is saved.
 
+## Agent access
+
+- `/mcp` is a stateless MCP endpoint (JSON-RPC over HTTP POST) protected by agent keys from Settings; it skips the household password. Tools are in `src/server/agent/tools.ts`: read tools for computed views (overview, income, spending, recurring, debts, which card), a read-only `query_database` (run in its own process by `query.ts`, with an authorizer that allows only reads and a 5-second limit), `import_transactions_csv`, and every operation as a snake_case tool. Tools run inside `runAs("agent")`.
+
 ## Git and pull requests
 
 - All changes land through pull requests; never push to `main`.
