@@ -1,0 +1,79 @@
+---
+import PaycheckBreakdown from "@/components/paycheck-breakdown.astro"
+import Strip from "@/components/strip.astro"
+import { formatMoney } from "@/lib/money"
+import type { Paycheck } from "@/lib/paycheck/paycheck"
+
+/**
+ * One job as a pay stub: what a regular paycheck deposits and where the rest
+ * of the gross goes, next to the line-by-line breakdown.
+ */
+interface Props {
+  employer: string
+  /** How the job pays, one fact a line. */
+  details: string[]
+  paycheck?: Paycheck
+}
+
+const { employer, details, paycheck } = Astro.props
+const sum = (lines: { amount: number }[]) =>
+  lines.reduce((total, line) => total + line.amount, 0)
+const taxes = paycheck
+  ? Object.values(paycheck.taxes).reduce((total, tax) => total + tax, 0)
+  : 0
+---
+
+<article class="@container flex flex-col rounded-xl border bg-card">
+  <header class="flex items-start justify-between gap-4 border-b px-4 py-4 md:px-6 md:py-5">
+    <div class="flex flex-col gap-1">
+      <h3 class="font-heading text-2xl/tight">{employer}</h3>
+      {details.map((line) => (
+        <p class="text-sm text-muted-foreground">{line}</p>
+      ))}
+    </div>
+    <slot name="actions" />
+  </header>
+  {paycheck && (
+    <div class="grid gap-8 px-4 py-5 md:px-6 md:py-6 @3xl:grid-cols-[2fr_3fr] @3xl:items-start @3xl:gap-12">
+      <div class="flex flex-col gap-5">
+        <div class="flex flex-col gap-1.5">
+          <span class="text-sm font-medium text-muted-foreground">
+            Each paycheck deposits
+          </span>
+          <span class="font-heading text-4xl/none text-primary tabular-nums">
+            {formatMoney(paycheck.net)}
+          </span>
+          <span class="text-sm text-muted-foreground">
+            of {formatMoney(paycheck.gross)} gross pay
+          </span>
+        </div>
+        <Strip
+          legend
+          parts={[
+            // The same order as the breakdown beside it, top to bottom.
+            { label: "Before taxes", amount: sum(paycheck.pretax), tone: 3 },
+            { label: "Taxes", amount: taxes, tone: 2 },
+            { label: "After taxes", amount: sum(paycheck.posttax), tone: 4 },
+            { label: "Deposited", amount: paycheck.net, tone: 1 },
+          ]}
+        />
+        {paycheck.employer.length > 0 && (
+          <div class="flex flex-col gap-1 text-sm">
+            <h4 class="font-medium text-muted-foreground">
+              Your employer adds
+            </h4>
+            <ul class="flex flex-col gap-1">
+              {paycheck.employer.map((line) => (
+                <li class="flex justify-between gap-4">
+                  {line.name}
+                  <span class="tabular-nums">{formatMoney(line.amount)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      <PaycheckBreakdown paycheck={paycheck} />
+    </div>
+  )}
+</article>

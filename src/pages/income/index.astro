@@ -1,0 +1,318 @@
+---
+import { cn } from "cn"
+
+import {
+  AddIncomeButtons,
+  EditJobButton,
+  EditOtherIncomeButton,
+} from "@/components/income-buttons"
+import PageHeader from "@/components/page-header.astro"
+import { AddPersonButton } from "@/components/household-members"
+import { ParamSelect } from "@/components/param-select"
+import PayStub from "@/components/pay-stub.astro"
+import Section from "@/components/section.astro"
+import Stat from "@/components/stat.astro"
+import Statement from "@/components/statement.astro"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import AppLayout from "@/layouts/app.astro"
+import { today } from "@/lib/dates"
+import { describeBonus, describePay } from "@/lib/income"
+import { formatMoney } from "@/lib/money"
+import type { Tone } from "@/lib/parts"
+import { describeSchedule } from "@/lib/paycheck/schedule"
+import { listAccounts } from "@/server/accounts"
+import { getDatabase } from "@/server/database"
+import { listMembers } from "@/server/household"
+import {
+  incomeYear,
+  listJobs,
+  listOtherIncome,
+  type Totals,
+} from "@/server/income"
+
+const db = getDatabase()
+const members = listMembers(db)
+const accounts = listAccounts(db, {
+  kinds: ["checking", "savings", "brokerage", "retirement", "hsa"],
+})
+const into = (id: number | null) => {
+  const name = accounts.find((a) => a.id === id)?.name
+  return name ? `into ${name}` : "no account set"
+}
+const tone = (index: number) => (Math.min(index, 3) + 1) as Tone
+const jobs = listJobs(db)
+const others = listOtherIncome(db)
+const year = Number(today().slice(0, 4))
+const result = incomeYear(db, year)
+const shared = { members, accounts }
+
+const totalRows: { label: string; key: keyof Totals; minus?: boolean }[] = [
+  { label: "Gross pay", key: "gross" },
+  { label: "Federal income tax", key: "federal", minus: true },
+  { label: "Social Security", key: "socialSecurity", minus: true },
+  { label: "Medicare", key: "medicare", minus: true },
+  { label: "State tax", key: "state", minus: true },
+  { label: "Local tax", key: "local", minus: true },
+  { label: "Retirement contributions", key: "retirement", minus: true },
+  { label: "HSA contributions", key: "hsa", minus: true },
+  { label: "Other deductions", key: "otherDeductions", minus: true },
+  { label: "Other income", key: "otherIncome" },
+  { label: "Deposited", key: "deposited" },
+  { label: "Employer contributions", key: "employer" },
+]
+const visibleRows = totalRows.filter(
+  (row) =>
+    row.key === "gross" ||
+    row.key === "deposited" ||
+    result.household[row.key] !== 0
+)
+const showHousehold = result.byMember.length > 1
+// Phones show one column of the totals at a time.
+const columns = [
+  ...result.byMember.map(({ member, totals }) => ({
+    key: String(member.id),
+    label: member.name,
+    totals,
+  })),
+  ...(showHousehold
+    ? [{ key: "household", label: "Household", totals: result.household }]
+    : []),
+]
+const shownColumn = columns.some(
+  (c) => c.key === Astro.url.searchParams.get("who")
+)
+  ? Astro.url.searchParams.get("who")!
+  : (columns.at(-1)?.key ?? "")
+const sumRows = visibleRows.filter((row) => row.key !== "employer")
+const employerRow = visibleRows.find((row) => row.key === "employer")
+const incoming = (key: keyof Totals) =>
+  key === "deposited" || key === "otherIncome"
+---
+
+<AppLayout title="Income">
+  <PageHeader
+    title="Income"
+    description="What each paycheck deposits, worked out from your pay, Form W-4, and deductions."
+  >
+    {members.length > 0 && <AddIncomeButtons client:load {...shared} />}
+  </PageHeader>
+  {members.length === 0 ? (
+    <Empty className="border">
+      <EmptyHeader>
+        <EmptyTitle>Add your household first</EmptyTitle>
+        <EmptyDescription>
+          Income belongs to a person. Add each person whose pay you track; you
+          can change them later in Settings.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <AddPersonButton client:load />
+      </EmptyContent>
+    </Empty>
+  ) : (
+    <>
+      {!result.taxTablesCurrent && (
+        <Alert>
+          <AlertTitle>{year} tax tables aren't installed</AlertTitle>
+          <AlertDescription>
+            Paychecks use the latest tables this version has. Update Beka for{" "}
+            {year}'s.
+          </AlertDescription>
+        </Alert>
+      )}
+      {result.byMember.length > 1 ? (
+        <Statement
+          label="Take-home"
+          terms={[
+            ...result.byMember.map(({ member, totals }, index) => ({
+              op: index > 0 ? ("+" as const) : undefined,
+              label: member.name,
+              value: formatMoney(Math.round(totals.deposited / 12)),
+              detail: "a month",
+              tone: tone(index),
+            })),
+            {
+              op: "=" as const,
+              label: "Household",
+              value: formatMoney(result.monthly),
+              detail: `take-home a month in ${year}`,
+            },
+          ]}
+          parts={result.byMember.map(({ member, totals }, index) => ({
+            label: member.name,
+            amount: totals.deposited,
+            tone: tone(index),
+          }))}
+        />
+      ) : (
+        <div class="grid gap-6 @xl:grid-cols-3">
+          <Stat
+            label="Take-home"
+            value={formatMoney(result.monthly)}
+            detail={`a month on average in ${year}`}
+          />
+        </div>
+      )}
+      {result.byMember.map(({ member }) => {
+        const memberJobs = jobs.filter((job) => job.memberId === member.id)
+        const memberOthers = others.filter(
+          (income) => income.memberId === member.id
+        )
+        if (memberJobs.length === 0 && memberOthers.length === 0) return null
+        return (
+          <Section title={member.name}>
+            <div class="flex flex-col gap-4">
+              {memberJobs.map((job) => {
+                const bonus = describeBonus(job)
+                return (
+                  <PayStub
+                    employer={job.employer}
+                    paycheck={result.typical.get(job.id)}
+                    details={[
+                      describePay(job.pay),
+                      `${describeSchedule(job.schedule)}, ${into(job.depositAccountId)}`,
+                      ...(bonus ? [bonus] : []),
+                    ]}
+                  >
+                    <EditJobButton
+                      slot="actions"
+                      client:load
+                      job={job}
+                      {...shared}
+                    />
+                  </PayStub>
+                )
+              })}
+              {memberOthers.length > 0 && (
+                <ul class="flex flex-col divide-y rounded-xl border bg-card">
+                  {memberOthers.map((income) => (
+                    <li class="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4 @2xl:px-6">
+                      <div class="flex flex-col gap-1">
+                        <h3 class="font-heading text-xl/tight">
+                          {income.name}
+                        </h3>
+                        <p class="text-sm text-muted-foreground">
+                          {describeSchedule(income.schedule)},{" "}
+                          {income.taxable ? "taxable" : "tax-free"},{" "}
+                          {into(income.accountId)}
+                        </p>
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <span class="font-heading text-2xl/none text-primary tabular-nums">
+                          {formatMoney(income.amount)}
+                        </span>
+                        <EditOtherIncomeButton
+                          client:load
+                          income={income}
+                          {...shared}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </Section>
+        )
+      })}
+      {result.deposits.length > 0 && (
+        <Section title={`${year} totals`}>
+          {columns.length > 1 && (
+            <div class="@xl:hidden">
+              <ParamSelect
+                client:load
+                label="Whose totals"
+                param="who"
+                value={shownColumn}
+                options={columns.map((c) => ({ value: c.key, label: c.label }))}
+              />
+            </div>
+          )}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  <span class="sr-only">Line</span>
+                </TableHead>
+                {columns.map((column) => (
+                  <TableHead
+                    className={cn(
+                      "text-right",
+                      column.key !== shownColumn && "hidden @xl:table-cell"
+                    )}
+                  >
+                    {column.label}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sumRows.map((row) => (
+                <TableRow
+                  className={
+                    row.key === "deposited"
+                      ? "hover:bg-transparent *:ledger-total"
+                      : undefined
+                  }
+                >
+                  <TableCell
+                    className={cn(
+                      "whitespace-normal",
+                      row.key === "deposited" && "font-medium"
+                    )}
+                  >
+                    {row.label}
+                  </TableCell>
+                  {columns.map((column) => (
+                    <TableCell
+                      className={cn(
+                        "text-right tabular-nums",
+                        column.key !== shownColumn && "hidden @xl:table-cell",
+                        row.key === "deposited" && "font-medium",
+                        row.minus && "text-muted-foreground",
+                        incoming(row.key) && "text-primary"
+                      )}
+                    >
+                      {column.totals[row.key] === 0 && row.key !== "deposited"
+                        ? "—"
+                        : formatMoney(
+                            row.minus
+                              ? -column.totals[row.key]
+                              : column.totals[row.key]
+                          )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {employerRow && (
+            <p class="text-sm text-muted-foreground">
+              Employers also added{" "}
+              {columns
+                .filter((c) => c.key !== "household" && c.totals.employer > 0)
+                .map((c) => `${formatMoney(c.totals.employer)} for ${c.label}`)
+                .join(" and ")}{" "}
+              to retirement and HSA accounts. It isn't part of the deposits.
+            </p>
+          )}
+        </Section>
+      )}
+    </>
+  )}
+</AppLayout>

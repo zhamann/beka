@@ -1,5 +1,6 @@
 import {
   IconBuildingBank,
+  IconCash,
   IconCreditCard,
   IconDots,
   IconLayoutDashboard,
@@ -44,6 +45,10 @@ const overview: NavItem = {
 
 /** The sidebar's groups: where money comes from and goes, then what you hold. */
 const groups: { label: string; items: NavItem[] }[] = [
+  {
+    label: "Each month",
+    items: [{ href: "/income", label: "Income", icon: IconCash }],
+  },
   {
     label: "What you hold",
     items: [
