@@ -1,6 +1,8 @@
 ---
 import { cn } from "cn"
 
+import { AgentAccess } from "@/components/agent-access"
+
 import { FreshnessSettings } from "@/components/freshness-settings"
 import { HouseholdMembers } from "@/components/household-members"
 import { LinkItem } from "@/components/link-item"
@@ -11,6 +13,7 @@ import { buttonVariants } from "@/components/ui/button"
 import { ItemGroup } from "@/components/ui/item"
 import AppLayout from "@/layouts/app.astro"
 import { parseTheme, THEME_COOKIE } from "@/lib/theme"
+import { listAgentKeys } from "@/server/agent/keys"
 
 import { listRewardCategories } from "@/server/cards"
 import { listCategories } from "@/server/categories"
@@ -24,6 +27,7 @@ const sections = [
   ["appearance", "Appearance"],
   ["categories", "Categories and history"],
   ["reminders", "Reminders"],
+  ["agent", "Agent access"],
 ] as const
 const members = listMembers(db)
 const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value)
@@ -36,7 +40,7 @@ const rewardCount = listRewardCategories(db).length
 <AppLayout title="Settings">
   <PageHeader
     title="Settings"
-    description="Your household, how Beka looks and sorts things, and the reminders behind it."
+    description="Your household, how Beka looks and sorts things, and the reminders and agent access behind it."
   />
   <nav
     aria-label="Settings sections"
@@ -92,6 +96,13 @@ const rewardCount = listRewardCategories(db).length
     description="What the Dashboard and your agent flag as needing an update."
   >
     <FreshnessSettings client:load rules={freshnessRules(db)} />
+  </Section>
+  <Section
+    id="agent"
+    title="Agent access"
+    description="Let an AI agent, like Claude, read and update your data over MCP so you can ask it about your finances. Its changes show in the change log."
+  >
+    <AgentAccess client:load keys={listAgentKeys(db)} />
   </Section>
 </AppLayout>
 

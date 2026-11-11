@@ -18,6 +18,19 @@ The name is the beka of Exodus 38:26, half a shekel paid by "every one that went
 - **Cards**: each card's rewards (cash back or points at the value you choose, bonus categories with caps and conditions, rotating quarterly categories), fees, and credits, with a "Which card?" guide showing the best card for each category. Cards that carry a balance join the loan ranking at their APR.
 - **Light and dark themes**: follow the device, or pick one in Settings → Appearance. Each device remembers its choice.
 
+## Asking an AI agent
+
+Beka shows where things stand; for questions like "can we afford a house?", connect an AI agent. It reads and updates your data over [MCP](https://modelcontextprotocol.io):
+
+1. In Settings → Agent access, create a key. It's shown once.
+2. Point your agent at `https://<your-beka-address>/mcp` with the key as a Bearer token. For Claude Code:
+
+   ```sh
+   claude mcp add --transport http beka https://<your-beka-address>/mcp --header "Authorization: Bearer <key>"
+   ```
+
+The agent starts from an overview of your month and what's out of date, can run read-only SQL against the database, gets computed paychecks, spending, recurring payments, debts, and card picks, and can make the same changes you can in the app (record a balance, import transactions, recategorize, …). Its changes are marked "Agent" in Settings → Change log. The endpoint works whether or not a household password is set; the key is what protects it.
+
 ## Development
 
 Requires Node 26 and pnpm.

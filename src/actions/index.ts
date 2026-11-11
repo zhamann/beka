@@ -1,5 +1,6 @@
 import { defineAction } from "astro:actions"
 
+import { agentKeys } from "./agent-keys"
 import { household } from "./household"
 import { accounts } from "./accounts"
 import { loans } from "./loans"
@@ -23,6 +24,7 @@ export const operations = {
 
 // Each operation becomes an Astro Action, keeping its input and output types.
 export const server = {
+  ...agentKeys,
   createMember: defineAction(household.createMember),
   updateMember: defineAction(household.updateMember),
   deleteMember: defineAction(household.deleteMember),
