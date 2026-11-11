@@ -1,0 +1,24 @@
+name: Bug report
+description: Something in Beka doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please don't paste real financial details. Made-up numbers that show the problem are perfect.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The release or image tag you're running, like 1.0.0.
+  - type: dropdown
+    id: device
+    attributes:
+      label: Where
+      options: [Phone, Tablet, Desktop, Agent (MCP), Not a display issue]

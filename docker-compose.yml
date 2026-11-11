@@ -1,0 +1,18 @@
+services:
+  beka:
+    image: ghcr.io/zhamann/beka:latest
+    # To build from source instead: comment out `image` and uncomment `build`.
+    # build: .
+    ports:
+      - "4321:4321"
+    environment:
+      # Your time zone, so "today" (paydays, this month) matches your calendar.
+      TZ: America/New_York
+      # Optional: ask every device for this password once.
+      # BEKA_PASSWORD: change-me
+    volumes:
+      - beka-data:/data
+    restart: unless-stopped
+
+volumes:
+  beka-data:

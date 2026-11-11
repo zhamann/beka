@@ -55,6 +55,19 @@ A seed is JSON that names people, accounts, and categories instead of numbering 
 
 ## Self-hosting
 
+Run the published image with Docker Compose:
+
+```bash
+curl -O https://raw.githubusercontent.com/zhamann/beka/main/docker-compose.yml
+docker compose up -d
+```
+
+Open http://localhost:4321. Images are built for `linux/amd64` and `linux/arm64`.
+
+Set `TZ` in `docker-compose.yml` to your time zone so "today" (paydays, this month, out-of-date reminders) matches your calendar.
+
+To use another port, change the host side of the mapping, e.g. `"8080:4321"`. To reach it only through a reverse proxy on the same machine, bind it to loopback with `"127.0.0.1:4321:4321"`.
+
 ### Keeping it private
 
 Beka holds your financial details, so keep it on a private network (like Tailscale), set `BEKA_PASSWORD`, or both, and serve it over HTTPS if it's reachable from outside your home.
@@ -89,6 +102,19 @@ HOST=0.0.0.0 DATA_DIR=/var/lib/beka node ./dist/server/entry.mjs
 ```
 
 Run it under a service manager like systemd so it restarts with the machine.
+
+### Data
+
+The database and its daily backups live in `/data` inside the container, which Compose mounts from the `beka-data` volume, so they survive restarts, upgrades, and recreating the container. See [Backups](#backups) for restoring.
+
+### Upgrading
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+The new container uses the same volume and applies any database migrations when it starts. Each January's release adds that year's federal tax tables; until you upgrade, the Dashboard reminds you that paychecks use the previous year's.
 
 ## Configuration
 
