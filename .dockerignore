@@ -1,0 +1,12 @@
+.astro
+.env*
+.git
+.github
+.vscode
+data
+dist
+node_modules
+*.md
+local
+sample
+scripts

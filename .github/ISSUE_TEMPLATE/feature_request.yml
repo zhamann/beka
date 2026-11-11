@@ -1,0 +1,11 @@
+name: Idea
+description: Something Beka could show or do.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help
+      description: What you'd like to see, and the question about your finances it would answer.
+    validations:
+      required: true
