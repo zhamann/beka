@@ -3,6 +3,7 @@ import { IconChevronLeft } from "@tabler/icons-react"
 
 import { AppShell } from "@/components/app-shell"
 import Layout from "@/layouts/main.astro"
+import { householdPassword } from "@/server/auth"
 
 export interface Crumb {
   label: string
@@ -29,6 +30,7 @@ const parent = breadcrumb.at(-2)
     }
     sidebarOpen={Astro.cookies.get("sidebar_state")?.value !== "false"}
     sidebarRemembered={Astro.cookies.has("sidebar_state")}
+    canSignOut={householdPassword() !== undefined}
   >
     <div
       id="content"

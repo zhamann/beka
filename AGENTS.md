@@ -65,6 +65,11 @@ The app is built for any household that self-hosts it, so every optional detail 
 
 - `/mcp` is a stateless MCP endpoint (JSON-RPC over HTTP POST) protected by agent keys from Settings; it skips the household password. Tools are in `src/server/agent/tools.ts`: read tools for computed views (overview, income, spending, recurring, debts, which card), a read-only `query_database` (run in its own process by `query.ts`, with an authorizer that allows only reads and a 5-second limit), `import_transactions_csv`, and every operation as a snake_case tool. Tools run inside `runAs("agent")`.
 
+## Access
+
+- Setting `BEKA_PASSWORD` makes every device sign in once (`src/middleware.ts`). The session cookie is derived from the password, so changing it signs everyone out.
+- Without a password, the middleware answers only at hosts `isTrustedHost` accepts (private names, IP addresses, and `BEKA_HOSTS`), so another site can't reach the app through DNS rebinding.
+
 ## Git and pull requests
 
 - All changes land through pull requests; never push to `main`.

@@ -31,6 +31,10 @@ Beka shows where things stand; for questions like "can we afford a house?", conn
 
 The agent starts from an overview of your month and what's out of date, can run read-only SQL against the database, gets computed paychecks, spending, recurring payments, debts, and card picks, and can make the same changes you can in the app (record a balance, import transactions, recategorize, …). Its changes are marked "Agent" in Settings → Change log. The endpoint works whether or not a household password is set; the key is what protects it.
 
+## Backups
+
+Beka copies its database into `$DATA_DIR/backups` once a day and keeps 30 days of copies. Settings → Backups lists them and can back up now, download any backup, or restore one (or a file you upload). A restore first backs up the data it replaces, so you can switch back. A backup holds everything in Beka, so keep copies as private as the app itself. To keep backups off the server too, copy the backups folder somewhere else on a schedule.
+
 ## Development
 
 Requires Node 26 and pnpm.
@@ -39,6 +43,54 @@ Requires Node 26 and pnpm.
 pnpm install
 pnpm dev
 ```
+
+## Self-hosting
+
+### Keeping it private
+
+Beka holds your financial details, so keep it on a private network (like Tailscale), set `BEKA_PASSWORD`, or both, and serve it over HTTPS if it's reachable from outside your home.
+
+- **Without a password**, Beka answers only at addresses that can't belong to another site: `localhost`, IP addresses, single-word names like `nas`, and names ending in `.local`, `.lan`, `.home`, `.internal`, `.home.arpa`, or `.ts.net`. This stops a web page you visit from pointing its own name at your server (DNS rebinding) and reading your data. To use another name, like `beka.example.com` on your home network, list it in `BEKA_HOSTS`.
+- **With a password**, each device signs in once and stays signed in for 400 days. Wrong passwords are checked one at a time, a second apart. To sign every device out, change the password.
+- **Agent keys** reach only `/mcp`. Each one can be revoked in Settings → Agent access.
+
+### Behind a reverse proxy
+
+Point the proxy at port 4321 and pass the original `Host` header and `X-Forwarded-Proto`, which Caddy does by default. With nginx:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:4321;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    client_max_body_size 200m; # restoring an uploaded backup
+}
+```
+
+Beka then sees the address people open it at, so restores and sign-in work and the sign-in cookie is only sent over HTTPS.
+
+### Without Docker
+
+Requires Node 26 and pnpm.
+
+```sh
+pnpm install --frozen-lockfile
+pnpm build
+HOST=0.0.0.0 DATA_DIR=/var/lib/beka node ./dist/server/entry.mjs
+```
+
+Run it under a service manager like systemd so it restarts with the machine.
+
+## Configuration
+
+| Variable        | Default     | What it does                                                                                                      |
+| --------------- | ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| `DATA_DIR`      | `./data`    | Where the database and its backups are stored (`/data` in the image).                                             |
+| `TZ`            | system      | The time zone "today" is worked out in.                                                                           |
+| `HOST`          | `localhost` | The address the server listens on; `0.0.0.0` (the image's default) listens on every network.                      |
+| `PORT`          | `4321`      | The port the server listens on.                                                                                   |
+| `BEKA_PASSWORD` | unset       | A household password. When set, each device signs in once; leave it unset to rely on your network for privacy.    |
+| `BEKA_HOSTS`    | unset       | Other host names to answer at without a password, comma-separated. See [Keeping it private](#keeping-it-private). |
 
 ## License
 
