@@ -43,6 +43,12 @@ The app is built for any household that self-hosts it, so every optional detail 
 - Mutations are operations in `src/actions/` (`op({ description, input, handler })`), validated with `astro/zod` and wrapped in `run`, which maps `BekaError`s to action errors. `src/actions/index.ts` turns each into an Astro Action for the app and lists them in `operations`, which the agent's MCP tools reuse, so every new operation needs a description written for an AI agent. After a successful mutation the client reloads, so pages always render from the database.
 - Tests use Vitest against an in-memory database (`openDatabase(":memory:")`).
 
+## Paycheck calculator
+
+- `src/lib/paycheck/` is a pure library (no database) that turns a job's settings into every paycheck of a year: federal withholding by the IRS percentage method for 2020-or-later Forms W-4, Social Security up to the wage base, Medicare with the additional 0.9%, state and local tax as a percent or flat amount, deductions with their tax treatment, and 401(k)/HSA limits with catch-up ages.
+- Figures by tax year live in `tax-years.ts`. Add each new year from Publication 15-T and the IRS limit notices, copying the tables verbatim; tests check withholding against hand-worked examples.
+- Paydays come from `schedule.ts`: weekend and Federal Reserve holiday paydays move to the previous (or next) business day.
+
 ## Git and pull requests
 
 - All changes land through pull requests; never push to `main`.
