@@ -1,0 +1,61 @@
+---
+import { Badge } from "@/components/ui/badge"
+import { formatRate, REWARDS_CURRENCY_LABELS } from "@/lib/cards"
+import { formatMoney, formatPercent } from "@/lib/money"
+import type { Card } from "@/server/cards"
+
+interface Props {
+  card: Card
+}
+
+const { card } = Astro.props
+/** A bonus's quarter, cap, and condition, the fine print worth seeing up front. */
+const bonusNote = (bonus: Card["bonuses"][number]) =>
+  [
+    bonus.year !== null && `Q${bonus.quarter} ${bonus.year}`,
+    bonus.cap !== null &&
+      `up to ${formatMoney(bonus.cap, { whole: true })} a ${bonus.capPeriod}`,
+    bonus.condition && bonus.condition.toLowerCase(),
+  ]
+    .filter(Boolean)
+    .join(", ")
+const credits = card.credits.reduce(
+  (sum, credit) => sum + credit.annualValue,
+  0
+)
+const details = [
+  `${REWARDS_CURRENCY_LABELS[card.rewardsCurrency]}${
+    card.rewardsCurrency === "cash" ? "" : ` at ${card.pointValue}¢ each`
+  }`,
+  card.annualFee > 0
+    ? `${formatMoney(card.annualFee)} annual fee${
+        credits > 0 ? ` (${formatMoney(credits)} in credits)` : ""
+      }`
+    : "no annual fee",
+  card.foreignTransactionFee
+    ? "charges foreign transaction fees"
+    : "no foreign transaction fees",
+  card.apr !== null && `${formatPercent(card.apr)} APR`,
+  card.creditLimit !== null &&
+    `${formatMoney(card.creditLimit, { whole: true })} limit`,
+].filter(Boolean)
+---
+
+<div class="flex flex-col gap-2">
+  <div class="flex flex-wrap gap-1.5">
+    <Badge variant="secondary">
+      {formatRate(card.baseRate, card.rewardsCurrency)} on everything
+    </Badge>
+    {card.bonuses.map((bonus) => (
+      <Badge
+        variant="outline"
+        className="h-auto max-w-full text-left whitespace-normal"
+      >
+        {formatRate(bonus.rate, card.rewardsCurrency)}{" "}
+        {bonus.rewardCategoryName}
+        {bonusNote(bonus) && ` (${bonusNote(bonus)})`}
+      </Badge>
+    ))}
+  </div>
+  <p class="text-sm text-muted-foreground">{details.join(", ")}</p>
+</div>

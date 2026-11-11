@@ -1,0 +1,161 @@
+---
+import { IconChevronRight } from "@tabler/icons-react"
+
+import { AccountList, AddAccountButton } from "@/components/account-list"
+import { LinkItem } from "@/components/link-item"
+import PageHeader from "@/components/page-header.astro"
+import Section from "@/components/section.astro"
+import Statement from "@/components/statement.astro"
+import { ItemGroup } from "@/components/ui/item"
+import AppLayout from "@/layouts/app.astro"
+import { ACCOUNT_GROUPS, DEBT_KINDS } from "@/lib/accounts"
+import { formatMoney } from "@/lib/money"
+import { listAccounts, netWorth } from "@/server/accounts"
+import { getDatabase } from "@/server/database"
+import { freshnessRules } from "@/server/settings"
+import { listMembers } from "@/server/household"
+
+const db = getDatabase()
+const rules = freshnessRules(db)
+const members = listMembers(db)
+const accounts = listAccounts(db)
+const worth = netWorth(db)
+const debtAccounts = accounts.filter((a) => DEBT_KINDS.includes(a.kind))
+const owed = (kind: "loan" | "credit_card") =>
+  debtAccounts
+    .filter((a) => a.kind === kind)
+    .reduce((sum, a) => sum + (a.balance?.amount ?? 0), 0)
+const debtLines = [
+  {
+    label: "Loans",
+    href: "/loans",
+    count: debtAccounts.filter((a) => a.kind === "loan").length,
+    amount: owed("loan"),
+  },
+  {
+    label: "Credit cards",
+    href: "/cards",
+    count: debtAccounts.filter((a) => a.kind === "credit_card").length,
+    amount: owed("credit_card"),
+  },
+].filter((line) => line.count > 0)
+const archived = listAccounts(db, { archived: true }).filter(
+  (account) => !DEBT_KINDS.includes(account.kind)
+)
+---
+
+<AppLayout title="Accounts">
+  <PageHeader
+    title="Accounts"
+    description="Balances you enter by hand. Every update is kept as history."
+  >
+    <AddAccountButton client:load members={members} />
+  </PageHeader>
+  {accounts.length > 0 && (
+    <Statement
+      label="Net worth"
+      terms={[
+        {
+          label: "Assets",
+          value: formatMoney(worth.assets),
+          detail: ACCOUNT_GROUPS.map((group) => group.title.toLowerCase()).join(
+            ", "
+          ),
+        },
+        {
+          op: "−" as const,
+          label: "Debts",
+          value: formatMoney(worth.debts),
+          detail: "loans and cards",
+          href: "#debts",
+        },
+        {
+          op: "=" as const,
+          label: "Net worth",
+          value: formatMoney(worth.net),
+          detail: "from the latest balances",
+        },
+      ]}
+      legend
+      parts={ACCOUNT_GROUPS.map((group, index) => ({
+        label: group.title,
+        amount: group.kinds.reduce(
+          (sum, kind) => sum + (worth.byKind[kind] ?? 0),
+          0
+        ),
+        tone: (index + 1) as 1 | 2 | 3,
+      }))}
+    />
+  )}
+  {ACCOUNT_GROUPS.map((group) => (
+    <Section title={group.title} description={group.description}>
+      <AccountList
+        client:load
+        accounts={accounts.filter((a) => group.kinds.includes(a.kind))}
+        kinds={group.kinds}
+        members={members}
+        emptyText={group.empty}
+        addLabel={group.add}
+        staleAfter={rules.balances ? rules.balanceDays : undefined}
+      />
+    </Section>
+  ))}
+  {debtLines.length > 0 && (
+    <Section
+      id="debts"
+      title="Debts"
+      description="Loans and card balances, each kept on its own page. Loans ranks them by where extra cash should go."
+    >
+      <div class="rounded-xl border bg-card">
+        <ul class="flex flex-col divide-y">
+          {debtLines.map((line) => (
+            <li>
+              <a
+                href={line.href}
+                class="flex items-center gap-4 px-4 py-4 hover:bg-muted @2xl:px-6"
+              >
+                <span class="flex flex-1 flex-col gap-1">
+                  <span class="font-medium">{line.label}</span>
+                  <span class="text-sm text-muted-foreground">
+                    {line.count} account{line.count === 1 ? "" : "s"}
+                  </span>
+                </span>
+                <span class="font-heading text-xl/tight tabular-nums">
+                  {formatMoney(line.amount)}
+                </span>
+                <IconChevronRight
+                  className="size-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+              </a>
+            </li>
+          ))}
+        </ul>
+        {debtLines.length > 1 && (
+          <div class="ledger-subtotal flex items-baseline justify-between gap-4 px-4 py-3 @2xl:px-6">
+            <span class="font-medium">Total</span>
+            <span class="font-heading text-xl/tight tabular-nums">
+              {formatMoney(worth.debts)}
+            </span>
+          </div>
+        )}
+      </div>
+    </Section>
+  )}
+  {archived.length > 0 && (
+    <Section
+      title="Archived"
+      description="Closed accounts, left out of net worth."
+    >
+      <ItemGroup>
+        {archived.map((account) => (
+          <LinkItem
+            href={`/accounts/${account.id}`}
+            title={account.name}
+            description={account.institution}
+          />
+        ))}
+      </ItemGroup>
+    </Section>
+  )}
+</AppLayout>

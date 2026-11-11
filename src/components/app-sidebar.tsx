@@ -1,6 +1,9 @@
 import {
+  IconBuildingBank,
+  IconCreditCard,
   IconDots,
   IconLayoutDashboard,
+  IconReceipt2,
   IconSettings,
   IconX,
   type Icon,
@@ -40,14 +43,26 @@ const overview: NavItem = {
 }
 
 /** The sidebar's groups: where money comes from and goes, then what you hold. */
-const groups: { label: string; items: NavItem[] }[] = []
+const groups: { label: string; items: NavItem[] }[] = [
+  {
+    label: "What you hold",
+    items: [
+      { href: "/accounts", label: "Accounts", icon: IconBuildingBank },
+      { href: "/loans", label: "Loans", icon: IconReceipt2 },
+      { href: "/cards", label: "Cards", icon: IconCreditCard },
+    ],
+  },
+]
 
 const tools: NavItem[] = [
   { href: "/settings", label: "Settings", icon: IconSettings },
 ]
 
 /** The pages on the phone's tab bar; the rest open from More. */
-const tabs: NavItem[] = [{ ...overview, short: "Home" }]
+const tabs: NavItem[] = [
+  { ...overview, short: "Home" },
+  { href: "/accounts", label: "Accounts", icon: IconBuildingBank },
+]
 
 const allItems = [overview, ...groups.flatMap((g) => g.items), ...tools]
 

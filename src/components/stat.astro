@@ -1,0 +1,24 @@
+---
+interface Props {
+  label: string
+  value: string
+  detail?: string
+  /** The left rule separates stats; a figure standing alone goes without. */
+  rule?: boolean
+}
+
+const { label, value, detail, rule = true } = Astro.props
+---
+
+<div
+  class:list={[
+    "flex min-w-0 flex-col gap-1",
+    rule && "border-l border-ledger/40 pl-4",
+  ]}
+>
+  <span class="text-sm font-medium text-muted-foreground">{label}</span>
+  <span class="font-heading text-2xl/tight tabular-nums sm:text-3xl/tight">
+    {value}
+  </span>
+  {detail && <span class="text-sm text-muted-foreground">{detail}</span>}
+</div>

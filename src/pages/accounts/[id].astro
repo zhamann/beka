@@ -1,0 +1,155 @@
+---
+import { AccountPageActions } from "@/components/account-page-actions"
+import CardSummary from "@/components/card-summary.astro"
+import { accountMeta } from "@/components/account-list"
+import { BalanceChart } from "@/components/balance-chart"
+import { BalanceHistory } from "@/components/balance-history"
+import PageHeader from "@/components/page-header.astro"
+import Section from "@/components/section.astro"
+import Stat from "@/components/stat.astro"
+import { Badge } from "@/components/ui/badge"
+
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty"
+
+import AppLayout from "@/layouts/app.astro"
+import { ACCOUNT_GROUPS, isDebt, staleAfterDays } from "@/lib/accounts"
+import { age, daysBetween, formatDate, today } from "@/lib/dates"
+import { formatMoney, formatPercent } from "@/lib/money"
+import { balanceHistory, getAccount } from "@/server/accounts"
+import { getDatabase } from "@/server/database"
+import { freshnessRules } from "@/server/settings"
+import { BekaError } from "@/server/errors"
+import { listMembers } from "@/server/household"
+import { getCard, listRewardCategories } from "@/server/cards"
+import { getLoan } from "@/server/loans"
+import { parseId } from "@/server/params"
+
+const db = getDatabase()
+const id = parseId(Astro.params.id)
+let account
+try {
+  account = id === undefined ? undefined : getAccount(db, id)
+} catch (error) {
+  if (!(error instanceof BekaError)) throw error
+}
+if (!account) return Astro.rewrite("/404")
+const loan = account.kind === "loan" ? getLoan(db, account.id) : undefined
+const card =
+  account.kind === "credit_card" ? getCard(db, account.id) : undefined
+const kinds = ACCOUNT_GROUPS.find((g) => g.kinds.includes(account.kind))
+  ?.kinds ?? [account.kind]
+const parent = loan
+  ? { label: "Loans", href: "/loans" }
+  : card
+    ? { label: "Cards", href: "/cards" }
+    : { label: "Accounts", href: "/accounts" }
+const history = balanceHistory(db, account.id)
+const [latest, previous] = history
+const rules = freshnessRules(db)
+// Out of date by the same rule the Dashboard and Accounts use.
+const stale =
+  rules.balances &&
+  latest !== undefined &&
+  daysBetween(latest.asOf, today()) >
+    staleAfterDays(account.kind, rules.balanceDays)
+const signed = (cents: number) =>
+  cents > 0 ? `+${formatMoney(cents)}` : formatMoney(cents)
+---
+
+<AppLayout title={account.name} breadcrumb={[parent, { label: account.name }]}>
+  <PageHeader title={account.name} description={accountMeta(account)}>
+    <AccountPageActions
+      client:load
+      account={account}
+      loan={loan}
+      card={card}
+      rewardCategories={card ? listRewardCategories(db) : undefined}
+      kinds={kinds}
+      members={listMembers(db)}
+    />
+  </PageHeader>
+  {account.archivedAt && (
+    <Badge variant="secondary" className="self-start">
+      Archived
+    </Badge>
+  )}
+  <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <Stat
+      rule={Boolean((latest && previous) || loan)}
+      label={isDebt(account.kind) ? "Owed" : "Balance"}
+      value={latest ? formatMoney(latest.amount) : "None yet"}
+      detail={
+        latest
+          ? `as of ${formatDate(latest.asOf)}${stale ? `, ${age(daysBetween(latest.asOf, today()))} old` : ""}`
+          : undefined
+      }
+    />
+    {latest && previous && (
+      <Stat
+        label="Change"
+        value={signed(latest.amount - previous.amount)}
+        detail={`since ${formatDate(previous.asOf)}`}
+      />
+    )}
+    {loan && (
+      <>
+        <Stat
+          label="Interest rate"
+          value={formatPercent(loan.interestRate)}
+          detail={
+            latest
+              ? `about ${formatMoney(Math.round((latest.amount * loan.interestRate) / 12))} a month`
+              : undefined
+          }
+        />
+        <Stat
+          label="Minimum payment"
+          value={formatMoney(loan.minimumPayment)}
+          detail={
+            [
+              loan.dueDay && `due on day ${loan.dueDay}`,
+              loan.escrow !== null &&
+                `${formatMoney(loan.escrow)} of it escrow`,
+            ]
+              .filter(Boolean)
+              .join(", ") || undefined
+          }
+        />
+        {loan.originalAmount !== null && (
+          <Stat
+            label="Original amount"
+            value={formatMoney(loan.originalAmount)}
+          />
+        )}
+      </>
+    )}
+  </div>
+  {card && (
+    <div class="rounded-xl border bg-card p-4 md:p-5">
+      <CardSummary card={card} />
+    </div>
+  )}
+  {account.notes && <p class="whitespace-pre-line">{account.notes}</p>}
+  <Section title="Balance history">
+    {history.length === 0 ? (
+      <Empty className="border py-6">
+        <EmptyHeader>
+          <EmptyDescription>No balances recorded yet.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    ) : (
+      <>
+        {history.length > 1 && (
+          <BalanceChart client:visible balances={history} />
+        )}
+        <BalanceHistory client:load balances={history} />
+        {history.length === 1 && (
+          <p class="text-sm text-muted-foreground">
+            A chart of the balance over time appears once you've updated it a
+            second time.
+          </p>
+        )}
+      </>
+    )}
+  </Section>
+</AppLayout>

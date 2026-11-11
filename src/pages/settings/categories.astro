@@ -1,0 +1,40 @@
+---
+import PageHeader from "@/components/page-header.astro"
+import { RewardCategories } from "@/components/reward-categories"
+import Section from "@/components/section.astro"
+import AppLayout from "@/layouts/app.astro"
+import { listCards, listRewardCategories } from "@/server/cards"
+import { getDatabase } from "@/server/database"
+
+const db = getDatabase()
+const earnedBy: Record<number, string[]> = {}
+for (const card of listCards(db)) {
+  for (const bonus of card.bonuses) {
+    const names = (earnedBy[bonus.rewardCategoryId] ??= [])
+    if (!names.includes(card.name)) names.push(card.name)
+  }
+}
+---
+
+<AppLayout
+  title="Categories"
+  breadcrumb={[
+    { label: "Settings", href: "/settings" },
+    { label: "Categories" },
+  ]}
+>
+  <PageHeader
+    title="Categories"
+    description="What card bonuses are earned on."
+  />
+  <Section
+    title="Reward categories"
+    description="What card bonuses are earned on. Everything else earns each card's base rate."
+  >
+    <RewardCategories
+      client:load
+      categories={listRewardCategories(db)}
+      earnedBy={earnedBy}
+    />
+  </Section>
+</AppLayout>
