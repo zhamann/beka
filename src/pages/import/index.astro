@@ -1,0 +1,46 @@
+---
+import { CopyInstructions } from "@/components/copy-instructions"
+import { ImportHistory } from "@/components/import-history"
+import { ImportUploader } from "@/components/import-uploader"
+import PageHeader from "@/components/page-header.astro"
+import Section from "@/components/section.astro"
+import AppLayout from "@/layouts/app.astro"
+import { listAccounts } from "@/server/accounts"
+import { listCategories } from "@/server/categories"
+import { getDatabase } from "@/server/database"
+import { aiInstructions, IMPORT_COLUMNS, listImports } from "@/server/imports"
+
+const db = getDatabase()
+const imports = listImports(db)
+---
+
+<AppLayout title="Import">
+  <PageHeader
+    title="Import"
+    description="Upload transactions your AI has already categorized. They aren't saved until you confirm; a category or account you add while reviewing is saved right away."
+  />
+  <Section
+    title="1. Give your AI these instructions"
+    description="Give these to the AI that categorizes your bank and card exports. They list your categories, accounts, and how you've categorized each merchant so far, so they change as you go."
+  >
+    <CopyInstructions client:load text={aiInstructions(db)} />
+  </Section>
+  <Section
+    title="2. Upload the file"
+    description={`A CSV with the columns ${IMPORT_COLUMNS.join(", ")}, in that order. Transactions you've already imported are skipped.`}
+  >
+    <ImportUploader
+      client:load
+      categories={listCategories(db)}
+      accounts={[
+        ...listAccounts(db),
+        ...listAccounts(db, { archived: true }),
+      ].map(({ id, name }) => ({ id, name }))}
+    />
+  </Section>
+  {imports.length > 0 && (
+    <Section title="History">
+      <ImportHistory client:load imports={imports} />
+    </Section>
+  )}
+</AppLayout>

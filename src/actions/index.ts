@@ -5,6 +5,8 @@ import { accounts } from "./accounts"
 import { loans } from "./loans"
 import { cards } from "./cards"
 import { income } from "./income"
+import { transactions } from "./transactions"
+import { recurring } from "./recurring"
 
 /** Every operation, shared by the app's actions and the agent's tools. */
 export const operations = {
@@ -13,6 +15,8 @@ export const operations = {
   ...loans,
   ...cards,
   ...income,
+  ...transactions,
+  ...recurring,
 }
 
 // Each operation becomes an Astro Action, keeping its input and output types.
@@ -40,4 +44,24 @@ export const server = {
   createOtherIncome: defineAction(income.createOtherIncome),
   updateOtherIncome: defineAction(income.updateOtherIncome),
   deleteOtherIncome: defineAction(income.deleteOtherIncome),
+  createCategory: defineAction(transactions.createCategory),
+  updateCategory: defineAction(transactions.updateCategory),
+  deleteCategory: defineAction(transactions.deleteCategory),
+  createTransaction: defineAction(transactions.createTransaction),
+  updateTransaction: defineAction(transactions.updateTransaction),
+  recategorize: defineAction(transactions.recategorize),
+  deleteTransactions: defineAction(transactions.deleteTransactions),
+  previewImport: defineAction(transactions.previewImport),
+  importTransactions: defineAction(transactions.importTransactions),
+  undoImport: defineAction(transactions.undoImport),
+  confirmRecurring: defineAction(recurring.confirmRecurring),
+  dismissRecurring: defineAction(recurring.dismissRecurring),
+  endRecurring: defineAction(recurring.endRecurring),
+  restartRecurring: defineAction(recurring.restartRecurring),
+  restoreSuggestion: defineAction(recurring.restoreSuggestion),
+  keepRecurring: defineAction(recurring.keepRecurring),
+  deleteRecurring: defineAction(recurring.deleteRecurring),
+  createRecurring: defineAction(recurring.createRecurring),
+  updateRecurring: defineAction(recurring.updateRecurring),
+  setTransactionRecurring: defineAction(recurring.setTransactionRecurring),
 }

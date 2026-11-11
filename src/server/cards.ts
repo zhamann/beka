@@ -29,6 +29,7 @@ import {
   translate,
 } from "./errors"
 import type { Debt } from "./loans"
+import { syncCardFee } from "./recurring"
 
 // Reward categories
 
@@ -326,6 +327,7 @@ export function createCard(
     )
     writeTerms(db, account.id, terms)
     const card = getCard(db, account.id)
+    syncCardFee(db, card)
     logChange(db, {
       action: "create",
       entity: "card",
@@ -348,6 +350,7 @@ export function updateCard(
     updateAccount(db, id, { ...input, kind: "credit_card" })
     writeTerms(db, id, terms)
     const after = getCard(db, id)
+    syncCardFee(db, after)
     logChange(db, {
       action: "update",
       entity: "card",

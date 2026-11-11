@@ -1,0 +1,286 @@
+---
+import {
+  IconAlertTriangle,
+  IconChevronLeft,
+  IconChevronRight,
+  IconCircleCheck,
+} from "@tabler/icons-react"
+import { cn } from "cn"
+
+import DepositTable from "@/components/deposit-table.astro"
+import PageHeader from "@/components/page-header.astro"
+import Section from "@/components/section.astro"
+import { Badge } from "@/components/ui/badge"
+import { buttonVariants } from "@/components/ui/button"
+import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty"
+import AppLayout from "@/layouts/app.astro"
+import { today } from "@/lib/dates"
+import { parseYear } from "@/lib/income"
+import { formatMoney } from "@/lib/money"
+import { LATEST_TAX_YEAR } from "@/lib/paycheck/tax-years"
+import { getDatabase } from "@/server/database"
+import { checkDeposits, type DepositCheck } from "@/server/deposit-matching"
+import { incomeYear, listJobs, type Deposit } from "@/server/income"
+
+const db = getDatabase()
+const thisYear = Number(today().slice(0, 4))
+const year = parseYear(Astro.url.searchParams.get("year"), thisYear)
+const result = incomeYear(db, year)
+const checks = new Map<Deposit, DepositCheck>(
+  checkDeposits(db, result.deposits).map((check, index) => [
+    result.deposits[index],
+    check,
+  ])
+)
+/** How an expected deposit compares with what was imported, if it can be told. */
+const checkNote = (deposit: Deposit) => {
+  const check = checks.get(deposit)
+  if (check?.status === "upcoming")
+    return { text: "Expected", found: true, expected: true }
+  if (!check || check.status === "unknown") return undefined
+  if (check.status === "missing")
+    return { text: "Not found in transactions", found: false }
+  if (Math.abs(check.difference) < 100) return { text: "Received", found: true }
+  return {
+    text: `Received ${formatMoney(check.amount)}, ${formatMoney(Math.abs(check.difference))} ${check.difference > 0 ? "more" : "less"} than expected`,
+    found: true,
+  }
+}
+const biweeklyJobs = new Set(
+  listJobs(db)
+    .filter((job) => job.schedule.kind === "biweekly")
+    .map((job) => job.id)
+)
+
+const months = Array.from({ length: 12 }, (_, index) => {
+  const prefix = `${year}-${String(index + 1).padStart(2, "0")}`
+  const deposits = result.deposits.filter((d) => d.date.startsWith(prefix))
+  const biweeklyCounts = new Map<number, number>()
+  for (const d of deposits) {
+    if (
+      d.source.kind === "job" &&
+      d.source.paycheck.regular > 0 &&
+      biweeklyJobs.has(d.source.jobId)
+    ) {
+      biweeklyCounts.set(
+        d.source.jobId,
+        (biweeklyCounts.get(d.source.jobId) ?? 0) + 1
+      )
+    }
+  }
+  const notes = deposits
+    .map(checkNote)
+    .filter((note) => note !== undefined && !("expected" in note))
+  return {
+    id: `month-${prefix}`,
+    current: prefix === today().slice(0, 7),
+    short: new Date(year, index, 1).toLocaleString("en-US", { month: "short" }),
+    label: new Date(year, index, 1).toLocaleString("en-US", { month: "long" }),
+    checked: notes.length,
+    found: notes.filter((note) => note!.found).length,
+    expected: deposits.filter((d) => checks.get(d)?.status === "upcoming")
+      .length,
+    // Past months where every deposit arrived fold to one line.
+    settled:
+      notes.length === deposits.length && notes.every((note) => note!.found),
+    deposits,
+    total: deposits.reduce((sum, d) => sum + d.amount, 0),
+    threePaychecks: [...biweeklyCounts.values()].some((count) => count >= 3),
+  }
+}).filter((month) => month.deposits.length > 0)
+// Past months where everything arrived fold into one list; the rest show in full.
+const earlier = months.filter((month) => month.settled && !month.current)
+const upcoming = months.filter((month) => !month.settled || month.current)
+
+const label = (deposit: Deposit) =>
+  deposit.source.kind === "job" ? deposit.source.employer : deposit.source.name
+const notes = (deposit: Deposit) => {
+  if (deposit.source.kind !== "job") return []
+  const { paycheck } = deposit.source
+  return [
+    paycheck.bonus > 0 && (paycheck.regular > 0 ? "Includes bonus" : "Bonus"),
+    paycheck.limited.length > 0 &&
+      `${paycheck.limited.join(", ")} limit reached`,
+  ].filter((note): note is string => Boolean(note))
+}
+const destinations = (deposit: Deposit) =>
+  deposit.parts
+    .map((part) =>
+      deposit.parts.length > 1
+        ? `${part.accountName ?? "no account"} ${formatMoney(part.amount)}`
+        : (part.accountName ?? "no account set")
+    )
+    .join(", ")
+const yearLink = (y: number) =>
+  y === thisYear ? "/income/deposits" : `/income/deposits?year=${y}`
+---
+
+<AppLayout
+  title={`${year} deposits`}
+  breadcrumb={[
+    { label: "Income", href: "/income" },
+    { label: `${year} deposits` },
+  ]}
+>
+  <PageHeader
+    title={`${year} deposits`}
+    description="Every expected paycheck and payment, on the day it lands."
+  >
+    <nav class="flex items-center gap-2" aria-label="Year">
+      <a
+        href={yearLink(year - 1)}
+        class={cn(buttonVariants({ variant: "outline" }))}
+      >
+        <IconChevronLeft aria-hidden="true" />
+        {year - 1}
+      </a>
+      <span
+        class={cn(buttonVariants({ variant: "secondary" }), "tabular-nums")}
+        aria-current="page"
+      >
+        {year}
+      </span>
+      {year < Math.max(thisYear, LATEST_TAX_YEAR) + 1 && (
+        <a
+          href={yearLink(year + 1)}
+          class={cn(buttonVariants({ variant: "outline" }))}
+        >
+          {year + 1}
+          <IconChevronRight aria-hidden="true" />
+        </a>
+      )}
+    </nav>
+  </PageHeader>
+  {months.length === 0 ? (
+    <Empty className="border">
+      <EmptyHeader>
+        <EmptyDescription>
+          No deposits. Add income on the Income page.
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  ) : (
+    <>
+      <nav
+        aria-label="Months"
+        class="sticky top-0 z-20 -mx-4 -my-4 flex flex-wrap items-center gap-1 bg-background px-4 py-3 sm:-mx-6 sm:px-6 md:-mx-10 md:px-10"
+      >
+        {months.map((month) => (
+          <a
+            href={`#${month.id}`}
+            aria-current={month.current ? "date" : undefined}
+            class={cn(
+              buttonVariants({
+                variant: month.current ? "secondary" : "ghost",
+                size: "sm",
+              })
+            )}
+          >
+            {month.short}
+          </a>
+        ))}
+      </nav>
+      {upcoming.map((month) => (
+        <Section id={month.id} title={`${month.label} ${year}`}>
+          {month.threePaychecks && (
+            <Badge slot="actions" variant="secondary">
+              Three paychecks
+            </Badge>
+          )}
+          {(month.checked > 0 || month.expected > 0) && (
+            <span
+              slot="actions"
+              class:list={[
+                "flex items-center gap-1 text-sm",
+                month.found < month.checked
+                  ? "text-destructive"
+                  : "text-muted-foreground",
+              ]}
+            >
+              {month.found < month.checked ? (
+                <IconAlertTriangle className="size-4" aria-hidden="true" />
+              ) : (
+                <IconCircleCheck className="size-4" aria-hidden="true" />
+              )}
+              {[
+                month.checked > 0 &&
+                  (month.found === month.checked
+                    ? `${month.found} received`
+                    : `${month.found} of ${month.checked} found`),
+                month.expected > 0 && `${month.expected} still expected`,
+              ]
+                .filter(Boolean)
+                .join(", ")}
+            </span>
+          )}
+          <DepositTable
+            month={month}
+            label={label}
+            notes={notes}
+            checkNote={checkNote}
+            destinations={destinations}
+          />
+        </Section>
+      ))}
+      {earlier.length > 0 && (
+        <Section
+          title={`Earlier in ${year}`}
+          description="Months where every deposit arrived. Open one to see its deposits."
+        >
+          <ul class="flex flex-col divide-y rounded-xl border bg-card">
+            {earlier.map((month) => (
+              <li id={month.id} class="scroll-mt-32">
+                <details class="group/month">
+                  <summary class="grid cursor-pointer list-none grid-cols-[1rem_1fr_auto] items-center gap-x-3 gap-y-0.5 px-4 py-3 @2xl:grid-cols-[1rem_10rem_1fr_auto] @2xl:px-5 [&::-webkit-details-marker]:hidden">
+                    <IconChevronRight
+                      className="size-4 text-muted-foreground transition-transform group-open/month:rotate-90"
+                      aria-hidden="true"
+                    />
+                    <span class="font-medium">{month.label}</span>
+                    <span class="col-start-2 row-start-2 text-sm text-muted-foreground @2xl:col-start-3 @2xl:row-start-1">
+                      {[
+                        month.checked > 0 &&
+                          (month.found === month.checked
+                            ? `${month.found} received`
+                            : `${month.found} of ${month.checked} found`),
+                        month.expected > 0 &&
+                          `${month.expected} still expected`,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </span>
+                    <span class="row-span-2 font-medium text-primary tabular-nums @2xl:row-span-1">
+                      {formatMoney(month.total)}
+                    </span>
+                  </summary>
+                  <div class="px-4 pb-4 @2xl:px-5">
+                    <DepositTable
+                      month={month}
+                      label={label}
+                      notes={notes}
+                      checkNote={checkNote}
+                      destinations={destinations}
+                    />
+                  </div>
+                </details>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+    </>
+  )}
+</AppLayout>
+
+<script>
+  // A link to a folded month opens it.
+  const openLinked = () => {
+    if (!location.hash) return
+    document
+      .querySelector(location.hash)
+      ?.querySelector("details")
+      ?.setAttribute("open", "")
+  }
+  openLinked()
+  addEventListener("hashchange", openLinked)
+</script>

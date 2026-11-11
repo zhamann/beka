@@ -12,7 +12,7 @@ import AppLayout from "@/layouts/app.astro"
 import { parseTheme, THEME_COOKIE } from "@/lib/theme"
 
 import { listRewardCategories } from "@/server/cards"
-
+import { listCategories } from "@/server/categories"
 import { getDatabase } from "@/server/database"
 import { listMembers } from "@/server/household"
 
@@ -24,6 +24,9 @@ const sections = [
 ] as const
 const members = listMembers(db)
 const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value)
+const categories = listCategories(db)
+const ofType = (type: string) =>
+  categories.filter((c) => c.type === type).length
 const rewardCount = listRewardCategories(db).length
 ---
 
@@ -65,13 +68,13 @@ const rewardCount = listRewardCategories(db).length
   <Section
     id="categories"
     title="Categories and history"
-    description="What card rewards are earned on, and every change made so far."
+    description="How transactions and card rewards are sorted, and every change made so far."
   >
     <ItemGroup>
       <LinkItem
         href="/settings/categories"
         title="Categories"
-        description={`${rewardCount} reward categories for card bonuses.`}
+        description={`Transaction categories (${ofType("spending")} spending, ${ofType("income")} income, ${ofType("excluded")} excluded) and ${rewardCount} reward categories.`}
       />
       <LinkItem
         href="/settings/changes"

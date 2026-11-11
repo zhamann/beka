@@ -49,6 +49,18 @@ The app is built for any household that self-hosts it, so every optional detail 
 - Figures by tax year live in `tax-years.ts`. Add each new year from Publication 15-T and the IRS limit notices, copying the tables verbatim; tests check withholding against hand-worked examples.
 - Paydays come from `schedule.ts`: weekend and Federal Reserve holiday paydays move to the previous (or next) business day.
 
+## Transactions
+
+- Amounts are cents with negative meaning money out. A category's type (`spending`, `income`, `excluded`) decides where its transactions count; `Uncategorized` is built in and counts as spending.
+- Uploads go through `previewImport` (nothing saved) and then `importTransactions`. Duplicates are rows already stored with the same account, date, amount, and description; repeats inside one file are kept.
+- `aiInstructions` builds the guide for the AI that prepares uploads from the current categories, accounts, and each merchant's category history.
+
+## Recurring
+
+- A recurring payment is one merchant charging on a schedule. Linking a transaction to it (`transactions.recurring_id`) is what flags it; its category doesn't change. `not_recurring` records charges someone unflagged so they aren't linked again.
+- Imports call `linkRecurring` and then `suggestRecurring`, which saves `suggested` rows for people to confirm or dismiss. Detection takes every charge for bills that swing (one per period) and amount clusters otherwise, and passes `on` (today) so tests don't depend on the clock.
+- Card annual fees are kept in step by `syncCardFee` whenever a card is saved.
+
 ## Git and pull requests
 
 - All changes land through pull requests; never push to `main`.

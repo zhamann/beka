@@ -1,0 +1,121 @@
+---
+import { IconCheck, IconClock, IconX } from "@tabler/icons-react"
+
+import { Badge } from "@/components/ui/badge"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { formatShortDate } from "@/lib/dates"
+import { formatMoney } from "@/lib/money"
+import type { Deposit } from "@/server/income"
+
+interface Note {
+  text: string
+  found: boolean
+  expected?: boolean
+}
+
+interface Props {
+  month: { deposits: Deposit[]; total: number }
+  label: (deposit: Deposit) => string
+  notes: (deposit: Deposit) => string[]
+  checkNote: (deposit: Deposit) => Note | undefined
+  destinations: (deposit: Deposit) => string
+}
+
+/** One month of the deposit calendar: each deposit, whether it arrived, and the total. */
+const { month, label, notes, checkNote, destinations } = Astro.props
+---
+
+<Table className="table-fixed">
+  <TableHeader>
+    <TableRow>
+      <TableHead className="hidden w-20 @md:table-cell">Date</TableHead>
+      <TableHead>From</TableHead>
+      <TableHead className="hidden w-56 @5xl:table-cell">To</TableHead>
+      <TableHead className="w-28 text-right">Amount</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    {month.deposits.map((deposit) => (
+      <TableRow>
+        <TableCell className="hidden align-top @md:table-cell">
+          {formatShortDate(deposit.date)}
+        </TableCell>
+        <TableCell className="align-top whitespace-normal">
+          <div class="flex flex-col gap-1">
+            <span class="text-sm text-muted-foreground @md:hidden">
+              {formatShortDate(deposit.date)}
+            </span>
+            <span class="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span>
+                {label(deposit)}
+                <span class="text-muted-foreground">
+                  , {deposit.memberName}
+                </span>
+              </span>
+              {notes(deposit).map((note) => (
+                <Badge variant="outline">{note}</Badge>
+              ))}
+            </span>
+            <span class="text-sm text-muted-foreground @5xl:hidden">
+              Into {destinations(deposit)}
+            </span>
+            {checkNote(deposit) && (
+              <span
+                class:list={[
+                  "flex items-start gap-1 text-sm",
+                  checkNote(deposit)!.found
+                    ? "text-muted-foreground"
+                    : "text-destructive",
+                ]}
+              >
+                {"expected" in checkNote(deposit)! ? (
+                  <IconClock
+                    className="mt-0.5 size-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                ) : checkNote(deposit)!.found ? (
+                  <IconCheck
+                    className="mt-0.5 size-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <IconX
+                    className="mt-0.5 size-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                )}
+                {checkNote(deposit)!.text}
+              </span>
+            )}
+          </div>
+        </TableCell>
+        <TableCell className="hidden align-top whitespace-normal text-muted-foreground @5xl:table-cell">
+          {destinations(deposit)}
+        </TableCell>
+        <TableCell className="text-right align-top font-medium text-primary tabular-nums">
+          {formatMoney(deposit.amount)}
+        </TableCell>
+      </TableRow>
+    ))}
+  </TableBody>
+  <TableFooter className="bg-transparent">
+    <TableRow className="hover:bg-transparent *:ledger-total">
+      <TableCell className="hidden @md:table-cell">Total</TableCell>
+      <TableCell>
+        <span class="@md:hidden">Total</span>
+      </TableCell>
+      <TableCell className="hidden @5xl:table-cell" />
+      <TableCell className="text-right font-medium text-primary tabular-nums">
+        {formatMoney(month.total)}
+      </TableCell>
+    </TableRow>
+  </TableFooter>
+</Table>
