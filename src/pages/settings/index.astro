@@ -1,6 +1,7 @@
 ---
 import { cn } from "cn"
 
+import { FreshnessSettings } from "@/components/freshness-settings"
 import { HouseholdMembers } from "@/components/household-members"
 import { LinkItem } from "@/components/link-item"
 import { ThemeSetting } from "@/components/theme-setting"
@@ -15,12 +16,14 @@ import { listRewardCategories } from "@/server/cards"
 import { listCategories } from "@/server/categories"
 import { getDatabase } from "@/server/database"
 import { listMembers } from "@/server/household"
+import { freshnessRules } from "@/server/settings"
 
 const db = getDatabase()
 const sections = [
   ["household", "Household"],
   ["appearance", "Appearance"],
   ["categories", "Categories and history"],
+  ["reminders", "Reminders"],
 ] as const
 const members = listMembers(db)
 const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value)
@@ -33,7 +36,7 @@ const rewardCount = listRewardCategories(db).length
 <AppLayout title="Settings">
   <PageHeader
     title="Settings"
-    description="Your household, how Beka looks and sorts things, and every change made so far."
+    description="Your household, how Beka looks and sorts things, and the reminders behind it."
   />
   <nav
     aria-label="Settings sections"
@@ -82,6 +85,13 @@ const rewardCount = listRewardCategories(db).length
         description="Every change made in the app or by your agent."
       />
     </ItemGroup>
+  </Section>
+  <Section
+    id="reminders"
+    title="Reminders"
+    description="What the Dashboard and your agent flag as needing an update."
+  >
+    <FreshnessSettings client:load rules={freshnessRules(db)} />
   </Section>
 </AppLayout>
 

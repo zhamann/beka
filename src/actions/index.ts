@@ -7,6 +7,7 @@ import { cards } from "./cards"
 import { income } from "./income"
 import { transactions } from "./transactions"
 import { recurring } from "./recurring"
+import { settings } from "./settings"
 
 /** Every operation, shared by the app's actions and the agent's tools. */
 export const operations = {
@@ -17,6 +18,7 @@ export const operations = {
   ...income,
   ...transactions,
   ...recurring,
+  ...settings,
 }
 
 // Each operation becomes an Astro Action, keeping its input and output types.
@@ -64,4 +66,5 @@ export const server = {
   createRecurring: defineAction(recurring.createRecurring),
   updateRecurring: defineAction(recurring.updateRecurring),
   setTransactionRecurring: defineAction(recurring.setTransactionRecurring),
+  updateFreshnessRules: defineAction(settings.updateFreshnessRules),
 }
