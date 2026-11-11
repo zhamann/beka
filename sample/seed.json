@@ -1,0 +1,426 @@
+{
+  "members": [
+    {
+      "name": "Alex",
+      "birthYear": 1988
+    },
+    {
+      "name": "Sam",
+      "birthYear": 1990
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Joint Checking",
+      "kind": "checking",
+      "institution": "First Community Bank",
+      "last4": "1042",
+      "balance": {
+        "amount": 6240.18,
+        "asOf": "2026-11-01"
+      }
+    },
+    {
+      "name": "High-Yield Savings",
+      "kind": "savings",
+      "subtype": "High-yield savings",
+      "institution": "Ally",
+      "last4": "8810",
+      "balance": {
+        "amount": 18400,
+        "asOf": "2026-11-01"
+      }
+    },
+    {
+      "name": "Alex's 401(k)",
+      "kind": "retirement",
+      "subtype": "401(k)",
+      "institution": "Fidelity",
+      "owner": "Alex",
+      "balance": {
+        "amount": 84210.55,
+        "asOf": "2026-10-31"
+      }
+    },
+    {
+      "name": "Sam's Roth IRA",
+      "kind": "retirement",
+      "subtype": "Roth IRA",
+      "institution": "Vanguard",
+      "owner": "Sam",
+      "balance": {
+        "amount": 31890.02,
+        "asOf": "2026-10-31"
+      }
+    },
+    {
+      "name": "Sam's HSA",
+      "kind": "hsa",
+      "institution": "HealthEquity",
+      "owner": "Sam",
+      "balance": {
+        "amount": 4120.66,
+        "asOf": "2026-09-30"
+      }
+    },
+    {
+      "name": "Home",
+      "kind": "asset",
+      "subtype": "Home",
+      "balance": {
+        "amount": 365000,
+        "asOf": "2026-06-01"
+      }
+    },
+    {
+      "name": "Subaru Outback",
+      "kind": "asset",
+      "subtype": "Vehicle",
+      "balance": {
+        "amount": 21500,
+        "asOf": "2026-06-01"
+      }
+    }
+  ],
+  "loans": [
+    {
+      "name": "Mortgage",
+      "institution": "Lakeview Loan Servicing",
+      "terms": {
+        "loanType": "mortgage",
+        "interestRate": 6.125,
+        "minimumPayment": 1645.18,
+        "dueDay": 1,
+        "originalAmount": 304000,
+        "escrow": 512.4
+      },
+      "balance": {
+        "amount": 287412.9,
+        "asOf": "2026-11-01"
+      }
+    },
+    {
+      "name": "Car loan",
+      "institution": "Northside Credit Union",
+      "terms": {
+        "loanType": "auto",
+        "interestRate": 5.49,
+        "minimumPayment": 412,
+        "dueDay": 3,
+        "originalAmount": 22000
+      },
+      "balance": {
+        "amount": 9821.33,
+        "asOf": "2026-11-01"
+      }
+    },
+    {
+      "name": "Sam's student loan",
+      "institution": "Nelnet",
+      "owner": "Sam",
+      "terms": {
+        "loanType": "student",
+        "interestRate": 6.8,
+        "minimumPayment": 265.4,
+        "dueDay": 12,
+        "originalAmount": 32000
+      },
+      "balance": {
+        "amount": 14388.04,
+        "asOf": "2026-10-15"
+      }
+    }
+  ],
+  "rewardCategories": [
+    "Costco"
+  ],
+  "cards": [
+    {
+      "name": "Everyday Visa",
+      "institution": "Chase",
+      "last4": "5521",
+      "owner": "Alex",
+      "terms": {
+        "rewardsCurrency": "points",
+        "pointValue": 1.25,
+        "baseRate": 1,
+        "annualFee": 95,
+        "annualFeeMonth": 4,
+        "bonuses": [
+          {
+            "category": "Dining",
+            "rate": 3
+          },
+          {
+            "category": "Travel",
+            "rate": 2
+          },
+          {
+            "category": "Streaming",
+            "rate": 3
+          },
+          {
+            "category": "Online shopping",
+            "rate": 3,
+            "condition": "Online groceries only"
+          }
+        ],
+        "credits": [
+          {
+            "name": "Hotel credit",
+            "annualValue": 50
+          }
+        ]
+      },
+      "balance": {
+        "amount": 1140.22,
+        "asOf": "2026-11-01"
+      }
+    },
+    {
+      "name": "Grocery Cash Card",
+      "institution": "American Express",
+      "last4": "3007",
+      "owner": "Sam",
+      "terms": {
+        "rewardsCurrency": "cash",
+        "baseRate": 1,
+        "bonuses": [
+          {
+            "category": "Groceries",
+            "rate": 6,
+            "cap": 6000,
+            "capPeriod": "year"
+          },
+          {
+            "category": "Streaming",
+            "rate": 6
+          },
+          {
+            "category": "Gas",
+            "rate": 3
+          },
+          {
+            "category": "Transit",
+            "rate": 3
+          }
+        ],
+        "annualFee": 95,
+        "annualFeeMonth": 9,
+        "foreignTransactionFee": true
+      },
+      "balance": {
+        "amount": 402.15,
+        "asOf": "2026-11-01"
+      }
+    },
+    {
+      "name": "Flat 2% Card",
+      "institution": "Citi",
+      "last4": "7719",
+      "terms": {
+        "rewardsCurrency": "cash",
+        "baseRate": 2,
+        "foreignTransactionFee": true,
+        "apr": 24.49
+      },
+      "balance": {
+        "amount": 0,
+        "asOf": "2026-11-01"
+      }
+    }
+  ],
+  "jobs": [
+    {
+      "member": "Alex",
+      "employer": "Brightline Logistics",
+      "pay": {
+        "type": "salary",
+        "annual": 88000
+      },
+      "schedule": {
+        "kind": "semimonthly",
+        "days": [
+          15,
+          31
+        ]
+      },
+      "w4": {
+        "filingStatus": "married_jointly",
+        "multipleJobs": true,
+        "dependentsAmount": 2200,
+        "otherIncome": 0,
+        "deductions": 0,
+        "extraWithholding": 0
+      },
+      "stateTax": {
+        "mode": "percent",
+        "value": 4.25,
+        "bonusPercent": null
+      },
+      "deductions": [
+        {
+          "name": "401(k)",
+          "type": "traditional_401k",
+          "treatment": "pretax_income",
+          "mode": "percent",
+          "value": 8,
+          "appliesToBonus": true,
+          "hsaCoverage": "self"
+        },
+        {
+          "name": "Medical",
+          "type": "medical",
+          "treatment": "pretax_all",
+          "mode": "amount",
+          "value": 185,
+          "appliesToBonus": false,
+          "hsaCoverage": "self"
+        },
+        {
+          "name": "Dental",
+          "type": "dental",
+          "treatment": "pretax_all",
+          "mode": "amount",
+          "value": 14.5,
+          "appliesToBonus": false,
+          "hsaCoverage": "self"
+        },
+        {
+          "name": "Life insurance",
+          "type": "life_insurance",
+          "treatment": "posttax",
+          "mode": "amount",
+          "value": 6.25,
+          "appliesToBonus": false,
+          "hsaCoverage": "self"
+        }
+      ],
+      "employerContributions": [
+        {
+          "name": "401(k) match",
+          "type": "retirement_match",
+          "mode": "percent",
+          "value": 4
+        }
+      ],
+      "bonus": {
+        "mode": "percent",
+        "value": 5,
+        "schedule": {
+          "kind": "yearly",
+          "month": 3,
+          "day": 15
+        },
+        "withPaycheck": false
+      },
+      "depositAccount": "Joint Checking",
+      "splits": [
+        {
+          "account": "High-Yield Savings",
+          "mode": "amount",
+          "value": 150
+        }
+      ]
+    },
+    {
+      "member": "Sam",
+      "employer": "Riverside Clinic",
+      "pay": {
+        "type": "hourly",
+        "rate": 31.5,
+        "hoursPerPeriod": 72,
+        "overtimeHours": 4
+      },
+      "schedule": {
+        "kind": "biweekly",
+        "anchor": "2026-10-30"
+      },
+      "w4": {
+        "filingStatus": "married_jointly",
+        "multipleJobs": true,
+        "dependentsAmount": 2200,
+        "otherIncome": 0,
+        "deductions": 0,
+        "extraWithholding": 0
+      },
+      "stateTax": {
+        "mode": "percent",
+        "value": 4.25,
+        "bonusPercent": null
+      },
+      "deductions": [
+        {
+          "name": "HSA",
+          "type": "hsa",
+          "treatment": "pretax_all",
+          "mode": "amount",
+          "value": 120,
+          "appliesToBonus": false,
+          "hsaCoverage": "family"
+        },
+        {
+          "name": "Roth 403(b)",
+          "type": "roth_401k",
+          "treatment": "posttax",
+          "mode": "percent",
+          "value": 5,
+          "appliesToBonus": false,
+          "hsaCoverage": "self"
+        }
+      ],
+      "employerContributions": [
+        {
+          "name": "Employer HSA",
+          "type": "hsa",
+          "mode": "amount",
+          "value": 20
+        }
+      ],
+      "depositAccount": "Joint Checking"
+    }
+  ],
+  "otherIncome": [
+    {
+      "member": "Alex",
+      "name": "Rental income",
+      "amount": 950,
+      "schedule": {
+        "kind": "monthly",
+        "day": 1
+      },
+      "businessDayRule": "next",
+      "taxable": true,
+      "account": "Joint Checking"
+    }
+  ],
+  "transactions": "transactions.csv",
+  "recurring": {
+    "confirmSuggestions": [
+      "Lakeview Mortgage",
+      "Northside Credit Union",
+      "Nelnet",
+      "City Power & Light",
+      "Metro Water",
+      "Fiberlink Internet",
+      "State Farm",
+      "Netflix",
+      "Planet Fitness"
+    ],
+    "flag": [
+      {
+        "merchant": "Amazon Prime",
+        "frequency": "yearly"
+      }
+    ],
+    "manual": [
+      {
+        "name": "Car registration",
+        "frequency": "yearly",
+        "manualAmount": 148,
+        "anchorDate": "2027-03-15",
+        "category": "Auto & Transport"
+      }
+    ]
+  }
+}
