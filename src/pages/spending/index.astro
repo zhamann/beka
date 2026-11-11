@@ -1,0 +1,367 @@
+---
+import { IconChevronRight } from "@tabler/icons-react"
+import { cn } from "cn"
+
+import { LinkSwitch } from "@/components/link-switch"
+import { MonthPicker } from "@/components/month-picker"
+import PageHeader from "@/components/page-header.astro"
+import Section from "@/components/section.astro"
+import { SpendingChart } from "@/components/spending-chart"
+import Stat from "@/components/stat.astro"
+import { buttonVariants } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import AppLayout from "@/layouts/app.astro"
+import { today } from "@/lib/dates"
+import { formatMoney } from "@/lib/money"
+import { formatMonth, monthAbbreviation } from "@/lib/months"
+import { getDatabase } from "@/server/database"
+import {
+  firstTransactionMonth,
+  shiftMonth,
+  spendingTable,
+} from "@/server/spending"
+
+const db = getDatabase()
+const params = Astro.url.searchParams
+const thisMonth = today().slice(0, 7)
+const thisYear = Number(thisMonth.slice(0, 4))
+const first = firstTransactionMonth(db)
+const yearParam = Number(params.get("year"))
+const year =
+  Number.isInteger(yearParam) && yearParam >= 2000 && yearParam <= thisYear
+    ? yearParam
+    : null
+const includeRecurring = params.get("recurring") === "1"
+const from = year ? `${year}-01` : shiftMonth(thisMonth, -12)
+const to = year ? `${year}-12` : thisMonth
+const table = spendingTable(db, { from, to, includeRecurring })
+const columns = table.current ? [...table.months, table.current] : table.months
+const years = first
+  ? Array.from(
+      { length: thisYear - Number(first.slice(0, 4)) + 1 },
+      (_, i) => thisYear - i
+    )
+  : []
+const mobileMonth = columns.includes(params.get("m") ?? "")
+  ? params.get("m")!
+  : (table.months.at(-1) ?? columns[0])
+
+const link = (changes: Record<string, string | null>) => {
+  const next = new URLSearchParams(params)
+  for (const [key, value] of Object.entries(changes)) {
+    if (value === null) next.delete(key)
+    else next.set(key, value)
+  }
+  next.delete("m")
+  const query = next.toString()
+  return query ? `/spending?${query}` : "/spending"
+}
+// Links to the transactions behind a figure, counted the same way.
+const recurringParam = includeRecurring ? "" : "&recurring=exclude"
+const cellLink = (categoryId: number, month: string) =>
+  `/transactions?category=${categoryId}&month=${month}${recurringParam}`
+const averageLink = (categoryId: number) =>
+  table.months.length
+    ? `/transactions?category=${categoryId}&from=${table.months[0]}&to=${table.months.at(-1)}${recurringParam}`
+    : `/transactions?category=${categoryId}${recurringParam}`
+const money = (cents: number | undefined) =>
+  cents ? formatMoney(cents, { whole: true }) : "—"
+// Month headers carry the year where it changes, like the chart's axis.
+const headerMonth = (month: string, index: number) =>
+  index === 0 || month.endsWith("-01")
+    ? `${monthAbbreviation(month)} '${month.slice(2, 4)}`
+    : monthAbbreviation(month)
+const ranked = table.categories.filter((category) => category.average > 0)
+const share = (cents: number) => {
+  if (table.average <= 0) return ""
+  const percent = Math.round((cents / table.average) * 100)
+  return percent < 1 ? "under 1%" : `${percent}%`
+}
+const ranges = [
+  {
+    label: "Last 12 months",
+    href: link({ year: null }),
+    current: year === null,
+  },
+  ...years.map((y) => ({
+    label: String(y),
+    href: link({ year: String(y) }),
+    current: year === y,
+  })),
+]
+---
+
+<AppLayout title="Spending">
+  <PageHeader
+    title="Spending"
+    description={
+      includeRecurring
+        ? "Everything in spending categories, recurring payments included."
+        : "Spending by category each month. Recurring payments are left out; they're on the Recurring page."
+    }
+  />
+  {first !== null && (
+    <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+      <nav class="flex flex-wrap items-center gap-2" aria-label="Range">
+        {ranges.map((range) => (
+          <a
+            href={range.href}
+            aria-current={range.current ? "page" : undefined}
+            class={cn(
+              buttonVariants({
+                variant: range.current ? "secondary" : "ghost",
+                size: "sm",
+              })
+            )}
+          >
+            {range.label}
+          </a>
+        ))}
+      </nav>
+      <LinkSwitch
+        client:load
+        label="Include recurring payments"
+        checked={includeRecurring}
+        href={link({ recurring: includeRecurring ? null : "1" })}
+      />
+    </div>
+  )}
+  {table.categories.length === 0 ? (
+    <Empty className="border">
+      <EmptyHeader>
+        <EmptyTitle>No spending yet</EmptyTitle>
+        <EmptyDescription>
+          {first === null
+            ? "Spending fills in from the transactions you import."
+            : "Nothing in spending categories for this range."}
+        </EmptyDescription>
+      </EmptyHeader>
+      {first === null && (
+        <EmptyContent>
+          <a href="/import" class={cn(buttonVariants())}>
+            Import transactions
+          </a>
+        </EmptyContent>
+      )}
+    </Empty>
+  ) : (
+    <>
+      <div class="grid grid-cols-2 gap-6 @xl:grid-cols-3">
+        <Stat
+          label="Average a month"
+          value={formatMoney(table.average)}
+          detail={`over ${table.months.length} complete month${table.months.length === 1 ? "" : "s"}`}
+        />
+        {table.current && (
+          <Stat
+            label={`${formatMonth(table.current, "long")} so far`}
+            value={formatMoney(table.totals[table.current] ?? 0)}
+            detail="not in the average"
+          />
+        )}
+      </div>
+      <figure class="flex flex-col gap-2">
+        <SpendingChart
+          client:visible
+          months={columns.map((month) => ({
+            month,
+            spent: table.totals[month] ?? 0,
+          }))}
+          average={table.average}
+          current={table.current ?? undefined}
+        />
+        <figcaption class="text-sm text-muted-foreground">
+          {`Each month's spending. The dashed line marks the monthly average, ${formatMoney(table.average, { whole: true })}.`}
+          {table.current &&
+            ` ${formatMonth(table.current, "long")} is outlined and lighter because it isn't over.`}
+        </figcaption>
+      </figure>
+      <Section
+        title="By category"
+        description="Each category's monthly average, largest first."
+      >
+        <ul class="flex flex-col border-t">
+          {ranked.map((category) => (
+            <li class="border-b">
+              <a
+                href={averageLink(category.id)}
+                class="group grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 py-2.5 text-sm @2xl:grid-cols-[13rem_1fr_6rem_4.5rem]"
+              >
+                <span class="inline-flex items-center gap-1">
+                  <span class="group-hover:underline">{category.name}</span>
+                  <IconChevronRight
+                    className="size-4 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                </span>
+                <span class="col-span-2 row-start-2 h-2 rounded-full bg-muted @2xl:col-span-1 @2xl:col-start-2 @2xl:row-start-1">
+                  <span
+                    class="block h-full rounded-full bg-chart-2"
+                    style={{
+                      // Each bar is its share of all spending, matching the percent beside it.
+                      width: `${(table.average > 0 ? (category.average / table.average) * 100 : 0).toFixed(1)}%`,
+                    }}
+                  />
+                </span>
+                <span class="text-right font-medium tabular-nums">
+                  {money(category.average)}
+                  <span class="font-normal text-muted-foreground @2xl:hidden">
+                    , {share(category.average)}
+                  </span>
+                </span>
+                <span class="hidden text-right text-muted-foreground tabular-nums @2xl:block">
+                  {share(category.average)}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </Section>
+      <Section
+        id="month-by-month"
+        title="Month by month"
+        description="Every category in every complete month; the month so far is in the chart above. Pick a figure to see its transactions."
+      >
+        <div class="flex flex-col gap-3 @2xl:hidden">
+          <MonthPicker
+            client:load
+            months={[...columns].reverse()}
+            value={mobileMonth}
+            param="m"
+            anchor="month-by-month"
+          />
+          <div class="overflow-hidden rounded-xl border bg-card">
+            <ul class="flex flex-col divide-y">
+              {table.categories
+                .filter((category) => category.byMonth[mobileMonth])
+                .map((category) => (
+                  <li>
+                    <a
+                      href={cellLink(category.id, mobileMonth)}
+                      class="flex min-h-12 items-center justify-between gap-4 px-4 py-2.5 text-sm hover:bg-muted"
+                    >
+                      <span>{category.name}</span>
+                      <span class="flex items-center gap-2 text-right tabular-nums">
+                        <span>
+                          {money(category.byMonth[mobileMonth])}
+                          <span class="block text-muted-foreground">
+                            avg. {money(category.average)}
+                          </span>
+                        </span>
+                        <IconChevronRight
+                          className="size-4 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                      </span>
+                    </a>
+                  </li>
+                ))}
+            </ul>
+            <div class="ledger-total flex items-baseline justify-between gap-4 px-4 py-3 font-medium">
+              <span>Total</span>
+              <span class="pr-6 tabular-nums">
+                {money(table.totals[mobileMonth] ?? 0)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hidden flex-col gap-2 @2xl:flex" data-scroll-end>
+          <p class="hidden text-sm text-muted-foreground" data-scroll-hint>
+            Scroll sideways for more months.
+          </p>
+          <Table className="[&_td:not(:first-child)]:px-1.5 [&_th:not(:first-child)]:px-1.5">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="sticky left-0 z-10 shadow-[1px_0_0_var(--border),6px_0_8px_-6px_rgb(0_0_0/0.25)] w-44 min-w-44 max-w-44 whitespace-nowrap bg-card">
+                  Category
+                </TableHead>
+                {table.months.map((month, index) => (
+                  <TableHead className="text-right">
+                    {headerMonth(month, index)}
+                  </TableHead>
+                ))}
+                <TableHead className="border-l text-right font-medium text-foreground">
+                  Average
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {table.categories.map((category) => (
+                <TableRow>
+                  <TableCell className="sticky left-0 z-10 shadow-[1px_0_0_var(--border),6px_0_8px_-6px_rgb(0_0_0/0.25)] w-44 min-w-44 max-w-44 whitespace-nowrap bg-card">
+                    {category.name}
+                  </TableCell>
+                  {table.months.map((month) => (
+                    <TableCell className="text-right tabular-nums">
+                      {category.byMonth[month] ? (
+                        <a
+                          href={cellLink(category.id, month)}
+                          class="-my-2 inline-block py-2 underline decoration-border underline-offset-4 hover:decoration-current"
+                        >
+                          {money(category.byMonth[month])}
+                        </a>
+                      ) : (
+                        <span class="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  ))}
+                  <TableCell className="border-l text-right font-medium tabular-nums">
+                    {money(category.average)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter className="bg-transparent">
+              <TableRow className="hover:bg-transparent *:ledger-total">
+                <TableCell className="sticky left-0 z-10 shadow-[1px_0_0_var(--border),6px_0_8px_-6px_rgb(0_0_0/0.25)] w-44 min-w-44 max-w-44 whitespace-nowrap bg-card">
+                  Total
+                </TableCell>
+                {table.months.map((month) => (
+                  <TableCell className="text-right font-medium tabular-nums">
+                    {money(table.totals[month])}
+                  </TableCell>
+                ))}
+                <TableCell className="border-l text-right font-medium tabular-nums">
+                  {money(table.average)}
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </div>
+      </Section>
+    </>
+  )}
+</AppLayout>
+
+<script>
+  // Start the month-by-month table at its latest months, once fonts have set
+  // its width.
+  const toLatest = () => {
+    for (const wrapper of document.querySelectorAll("[data-scroll-end]")) {
+      const scroller = wrapper.querySelector<HTMLElement>(
+        "[data-slot=table-container]"
+      )
+      if (!scroller || scroller.scrollWidth <= scroller.clientWidth) continue
+      scroller.scrollLeft = scroller.scrollWidth
+      wrapper.querySelector("[data-scroll-hint]")?.classList.remove("hidden")
+    }
+  }
+  toLatest()
+  void document.fonts.ready.then(toLatest)
+</script>

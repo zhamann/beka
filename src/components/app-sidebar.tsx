@@ -1,6 +1,7 @@
 import {
   IconBuildingBank,
   IconCash,
+  IconChartBar,
   IconCreditCard,
   IconDots,
   IconFileImport,
@@ -52,6 +53,7 @@ const groups: { label: string; items: NavItem[] }[] = [
     label: "Each month",
     items: [
       { href: "/income", label: "Income", icon: IconCash },
+      { href: "/spending", label: "Spending", icon: IconChartBar },
       { href: "/recurring", label: "Recurring", icon: IconRepeat },
       { href: "/transactions", label: "Transactions", icon: IconListDetails },
     ],
@@ -74,6 +76,7 @@ const tools: NavItem[] = [
 /** The pages on the phone's tab bar; the rest open from More. */
 const tabs: NavItem[] = [
   { ...overview, short: "Home" },
+  { href: "/spending", label: "Spending", icon: IconChartBar },
   {
     href: "/transactions",
     label: "Transactions",
