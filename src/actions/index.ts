@@ -4,6 +4,7 @@ import { household } from "./household"
 import { accounts } from "./accounts"
 import { loans } from "./loans"
 import { cards } from "./cards"
+import { income } from "./income"
 
 /** Every operation, shared by the app's actions and the agent's tools. */
 export const operations = {
@@ -11,6 +12,7 @@ export const operations = {
   ...accounts,
   ...loans,
   ...cards,
+  ...income,
 }
 
 // Each operation becomes an Astro Action, keeping its input and output types.
@@ -32,4 +34,10 @@ export const server = {
   createRewardCategory: defineAction(cards.createRewardCategory),
   renameRewardCategory: defineAction(cards.renameRewardCategory),
   deleteRewardCategory: defineAction(cards.deleteRewardCategory),
+  createJob: defineAction(income.createJob),
+  updateJob: defineAction(income.updateJob),
+  deleteJob: defineAction(income.deleteJob),
+  createOtherIncome: defineAction(income.createOtherIncome),
+  updateOtherIncome: defineAction(income.updateOtherIncome),
+  deleteOtherIncome: defineAction(income.deleteOtherIncome),
 }

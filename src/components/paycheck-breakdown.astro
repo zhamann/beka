@@ -1,0 +1,80 @@
+---
+import { formatMoney } from "@/lib/money"
+import type { Paycheck } from "@/lib/paycheck/paycheck"
+
+interface Props {
+  paycheck: Paycheck
+}
+
+const { paycheck } = Astro.props
+const taxes = [
+  ["Federal income tax", paycheck.taxes.federal],
+  ["Social Security", paycheck.taxes.socialSecurity],
+  ["Medicare", paycheck.taxes.medicare],
+  ["State tax", paycheck.taxes.state],
+  ["Local tax", paycheck.taxes.local],
+] as const
+const rows: { label: string; amount: number; group?: string }[] = [
+  ...paycheck.pretax.map((line) => ({
+    label: line.name,
+    amount: -line.amount,
+    group: "Before taxes",
+  })),
+  ...taxes
+    .filter(([, amount]) => amount > 0)
+    .map(([label, amount]) => ({ label, amount: -amount, group: "Taxes" })),
+  ...paycheck.posttax.map((line) => ({
+    label: line.name,
+    amount: -line.amount,
+    group: "After taxes",
+  })),
+]
+let lastGroup: string | undefined
+---
+
+<table class="w-full text-sm">
+  <caption class="sr-only">Paycheck breakdown</caption>
+  <tbody>
+    <tr>
+      <th scope="row" class="pb-2 text-left font-medium">
+        Gross pay
+      </th>
+      <td class="pb-2 text-right font-medium tabular-nums">
+        {formatMoney(paycheck.gross)}
+      </td>
+    </tr>
+    {rows.map((row) => {
+      const heading = row.group !== lastGroup ? row.group : undefined
+      lastGroup = row.group
+      return (
+        <>
+          {heading && (
+            <tr class="border-t">
+              <th
+                scope="rowgroup"
+                colspan="2"
+                class="pt-3 pb-1 text-left font-medium text-muted-foreground"
+              >
+                {heading}
+              </th>
+            </tr>
+          )}
+          <tr>
+            <td class="py-1 pl-4">{row.label}</td>
+            <td class="py-1 text-right tabular-nums">
+              {formatMoney(row.amount)}
+            </td>
+          </tr>
+        </>
+      )
+    })}
+    <tr class="ledger-total">
+      <th scope="row" class="py-2.5 text-left font-medium">
+        Deposited
+      </th>
+      <td class="py-2.5 text-right font-heading text-xl/none tabular-nums">
+        {formatMoney(paycheck.net)}
+      </td>
+    </tr>
+  </tbody>
+</table>
