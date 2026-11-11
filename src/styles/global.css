@@ -1,0 +1,269 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/public-sans";
+@import "@fontsource/spectral/500.css";
+@import "@fontsource/spectral/600.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: 'Spectral', serif;
+    --font-sans: 'Public Sans Variable', sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-chart-bar: var(--chart-bar);
+    --color-ledger: var(--ledger);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * A household statement in greenback ink. Light mode is cool paper with the
+ * sidebar in a note's deep green; dark mode is the note's back at night.
+ * Cards and tables are sheets (`card`) laid on the page (`background`).
+ * `chart-1` to `chart-4` are the parts of a whole, darkest first: left over,
+ * spend, recurring on the Dashboard; deposited, taxes, deductions on a stub.
+ * `ledger` is the rule under totals, a double line by accounting custom.
+ */
+:root {
+    --background: #f1f4f0;
+    --foreground: #111d17;
+    --card: #fcfdfb;
+    --card-foreground: #111d17;
+    --popover: #fcfdfb;
+    --popover-foreground: #111d17;
+    --primary: #24533b;
+    --primary-foreground: #f2f8f4;
+    --secondary: #e1e8e2;
+    --secondary-foreground: #18301f;
+    --muted: #e5ebe6;
+    --muted-foreground: #4f5e55;
+    --accent: #dde7df;
+    --accent-foreground: #18301f;
+    --destructive: #a8352a;
+    --border: #d0d9d2;
+    --input: #d6dfd8;
+    /* Outlines form controls at 3:1 against the page and cards. */
+    --control-border: #7d8c82;
+    --ring: #3f6f55;
+    --ledger: #7d8f83;
+    --chart-bar: #3a7053;
+    --chart-1: #24533b;
+    --chart-2: #5b8c6f;
+    --chart-3: #86ad94;
+    --chart-4: #a9c4b2;
+    --chart-5: #18301f;
+    --radius: 0.625rem;
+    --sidebar: #1c3f2d;
+    --sidebar-foreground: #e3eee6;
+    --sidebar-primary: #a8d5b9;
+    --sidebar-primary-foreground: #12291d;
+    --sidebar-accent: rgb(227 238 230 / 11%);
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: rgb(227 238 230 / 12%);
+    --sidebar-ring: #a8d5b9;
+}
+
+.dark {
+    --background: #0c1510;
+    --foreground: #e6eee8;
+    --card: #18291f;
+    --card-foreground: #e6eee8;
+    --popover: #14221a;
+    --popover-foreground: #e6eee8;
+    --primary: #a3d1b5;
+    --primary-foreground: #0c1510;
+    --secondary: #20322a;
+    --secondary-foreground: #e6eee8;
+    --muted: #1b2b23;
+    --muted-foreground: #a4b5aa;
+    --accent: #24382d;
+    --accent-foreground: #e6eee8;
+    --destructive: #ec8a79;
+    --border: rgb(230 238 232 / 14%);
+    --input: rgb(230 238 232 / 18%);
+    --control-border: #5d7266;
+    --ring: #5b8c6f;
+    --ledger: rgb(230 238 232 / 45%);
+    --chart-bar: #86b99b;
+    --chart-1: #b4e0c5;
+    --chart-2: #7fb094;
+    --chart-3: #5f8a72;
+    --chart-4: #456452;
+    --chart-5: #d6e8dc;
+    --sidebar: #1a2e23;
+    --sidebar-foreground: #e6eee8;
+    --sidebar-primary: #a3d1b5;
+    --sidebar-primary-foreground: #0c1510;
+    --sidebar-accent: rgb(230 238 232 / 8%);
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: rgb(230 238 232 / 9%);
+    --sidebar-ring: #5b8c6f;
+}
+
+/* Native controls (date pickers, scrollbars) follow the theme. */
+:root {
+  color-scheme: light;
+}
+:root.dark {
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+    font-variant-numeric: lining-nums;
+  }
+  .dark body {
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+}
+
+/* A total: a single rule above, a double rule below. */
+@utility ledger-total {
+  border-top: 1px solid var(--ledger);
+  border-bottom: 3px double var(--ledger);
+}
+
+/* A subtotal: a single rule above. */
+@utility ledger-subtotal {
+  border-top: 1px solid var(--ledger);
+}
+
+/*
+ * Tables and outlined items are sheets laid on the page. Edge cells get the
+ * same inset as a card so figures don't run into its border. These stay
+ * outside the layers so they win over the components' own padding.
+ */
+[data-slot="table-container"] {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--card);
+}
+[data-slot="table"] :is(th, td):first-child {
+  padding-left: --spacing(3);
+}
+[data-slot="table"] :is(th, td):last-child {
+  padding-right: --spacing(3);
+}
+@media (width >= 48rem) {
+  [data-slot="table"] :is(th, td):first-child {
+    padding-left: --spacing(4);
+  }
+  [data-slot="table"] :is(th, td):last-child {
+    padding-right: --spacing(4);
+  }
+}
+[data-slot="item"][data-variant="outline"] {
+  background: var(--card);
+}
+
+/*
+ * On touch screens, small buttons (and links styled as them) grow to a
+ * 40px target, so they're easy to hit with a thumb.
+ */
+@media (pointer: coarse) {
+  :is([data-slot="button"], a[class~="h-8"]):not([data-slot="checkbox"]) {
+    min-height: --spacing(10);
+  }
+  [data-slot="button"][class~="size-8"],
+  [data-slot="button"][class~="size-9"] {
+    min-width: --spacing(10);
+  }
+}
+
+/* Badges carry information, so they're set at the same small size as other text. */
+[data-slot="badge"] {
+  height: auto;
+  min-height: --spacing(6);
+  padding-inline: --spacing(2.5);
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+}
+
+/*
+ * Form controls get a visible outline, so empty fields and unchecked boxes
+ * stand out from the sheet they're on. Focus and error outlines still win.
+ */
+:is(
+    [data-slot="input"],
+    [data-slot="native-select"],
+    [data-slot="checkbox"]:not([data-checked]),
+    [data-slot="switch"][data-unchecked],
+    [data-slot="input-group"]
+  ):not(:focus-visible, :focus-within, [aria-invalid="true"], :has([aria-invalid="true"])) {
+  border-color: var(--control-border);
+}
+
+/*
+ * Wide tables with a sticky first column scroll a whole column at a time, so
+ * no figure is ever half hidden under the sticky one.
+ */
+[data-scroll-end] [data-slot="table-container"] {
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline-start: --spacing(44);
+}
+[data-scroll-end] th {
+  scroll-snap-align: start;
+}
+
+/* Placeholders are examples (they start with "e.g."), set in the muted text color so they stay readable. */
+::placeholder {
+  color: var(--muted-foreground);
+}
+
+/* Selects read at the same size as typed fields on phones (and iOS won't zoom them). */
+@media (width < 48rem) {
+  [data-slot="native-select"] {
+    font-size: var(--text-base);
+  }
+}

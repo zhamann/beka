@@ -1,0 +1,26 @@
+---
+import PageHeader from "@/components/page-header.astro"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import AppLayout from "@/layouts/app.astro"
+---
+
+<AppLayout title="Dashboard">
+  <PageHeader
+    title="Dashboard"
+    description="Your household's month at a glance."
+  />
+  <Empty className="border">
+    <EmptyHeader>
+      <EmptyTitle>Nothing to show yet</EmptyTitle>
+      <EmptyDescription>
+        Your month comes together here once Beka knows your household: what
+        comes in, what goes out, and what you hold.
+      </EmptyDescription>
+    </EmptyHeader>
+  </Empty>
+</AppLayout>

@@ -1,0 +1,50 @@
+---
+import { IconChevronLeft } from "@tabler/icons-react"
+
+import { AppShell } from "@/components/app-shell"
+import Layout from "@/layouts/main.astro"
+
+export interface Crumb {
+  label: string
+  href?: string
+}
+
+interface Props {
+  title: string
+  /** Trail from the outermost page to the current one. */
+  breadcrumb?: Crumb[]
+}
+
+const { title, breadcrumb = [{ label: title }] } = Astro.props
+const parent = breadcrumb.at(-2)
+---
+
+<Layout title={title}>
+  <AppShell
+    client:load
+    path={
+      breadcrumb.length > 1 && breadcrumb[0].href
+        ? breadcrumb[0].href
+        : Astro.url.pathname
+    }
+    sidebarOpen={Astro.cookies.get("sidebar_state")?.value !== "false"}
+    sidebarRemembered={Astro.cookies.has("sidebar_state")}
+  >
+    <div
+      id="content"
+      tabindex="-1"
+      class="@container mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6 px-4 sm:gap-8 pt-6 pb-28 outline-none sm:px-6 md:gap-12 md:px-10 md:pt-4 md:pb-16"
+    >
+      {parent?.href && (
+        <a
+          href={parent.href}
+          class="-my-2 -mb-8 flex min-h-10 items-center gap-1 self-start text-sm text-muted-foreground hover:text-foreground md:-mb-10"
+        >
+          <IconChevronLeft className="size-4" aria-hidden="true" />
+          {parent.label}
+        </a>
+      )}
+      <slot />
+    </div>
+  </AppShell>
+</Layout>
