@@ -77,4 +77,4 @@ The app is built for any household that self-hosts it, so every optional detail 
 - PR titles and commit messages follow Conventional Commits (`feat:`, `fix:`, `chore:`, `build:`, `docs:`, `test:`, `refactor:`).
 - PRs are squash-merged once CI passes.
 - Each PR carries its own tests and README updates.
-- Never commit real financial data. Use made-up values in tests. Don't add Playwright as a dependency.
+- Never commit real financial data. Personal seed files go in `local/`, which git ignores; `sample/` holds the made-up household for development and screenshots (`pnpm seed sample/seed.json` against `pnpm dev`). Don't add Playwright as a dependency.
