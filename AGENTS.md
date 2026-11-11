@@ -37,6 +37,7 @@ The app is built for any household that self-hosts it, so every optional detail 
 
 - SQLite through Node's built-in `node:sqlite`, stored at `$DATA_DIR/beka.db` (default `./data`).
 - Each domain has a module in `src/server/` that owns its reads and writes. The schema enforces the rules; modules translate violations into `BekaError`s with messages a person can read.
+- Every change runs in a transaction and calls `logChange` so it shows up in the activity log. `runAs("agent", …)` marks changes the agent makes.
 - Money is stored as integer cents. Dates are `YYYY-MM-DD` text.
 - Schema changes are new numbered files in `src/server/migrations/`, applied in order at startup. Never edit a shipped migration.
 - Mutations are operations in `src/actions/` (`op({ description, input, handler })`), validated with `astro/zod` and wrapped in `run`, which maps `BekaError`s to action errors. `src/actions/index.ts` turns each into an Astro Action for the app and lists them in `operations`, which the agent's MCP tools reuse, so every new operation needs a description written for an AI agent. After a successful mutation the client reloads, so pages always render from the database.
