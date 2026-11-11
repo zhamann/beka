@@ -1,4 +1,7 @@
 ---
+import { IconChevronRight } from "@tabler/icons-react"
+import { cn } from "cn"
+
 import { AccountPageActions } from "@/components/account-page-actions"
 import CardSummary from "@/components/card-summary.astro"
 import { accountMeta } from "@/components/account-list"
@@ -8,12 +11,18 @@ import PageHeader from "@/components/page-header.astro"
 import Section from "@/components/section.astro"
 import Stat from "@/components/stat.astro"
 import { Badge } from "@/components/ui/badge"
-
+import { buttonVariants } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty"
-
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table"
 import AppLayout from "@/layouts/app.astro"
 import { ACCOUNT_GROUPS, isDebt, staleAfterDays } from "@/lib/accounts"
-import { age, daysBetween, formatDate, today } from "@/lib/dates"
+import {
+  age,
+  daysBetween,
+  formatDate,
+  formatShortDate,
+  today,
+} from "@/lib/dates"
 import { formatMoney, formatPercent } from "@/lib/money"
 import { balanceHistory, getAccount } from "@/server/accounts"
 import { getDatabase } from "@/server/database"
@@ -23,6 +32,7 @@ import { listMembers } from "@/server/household"
 import { getCard, listRewardCategories } from "@/server/cards"
 import { getLoan } from "@/server/loans"
 import { parseId } from "@/server/params"
+import { listTransactions } from "@/server/transactions"
 
 const db = getDatabase()
 const id = parseId(Astro.params.id)
@@ -45,6 +55,7 @@ const parent = loan
     : { label: "Accounts", href: "/accounts" }
 const history = balanceHistory(db, account.id)
 const [latest, previous] = history
+const recent = listTransactions(db, { accountId: account.id })
 const rules = freshnessRules(db)
 // Out of date by the same rule the Dashboard and Accounts use.
 const stale =
@@ -152,4 +163,59 @@ const signed = (cents: number) =>
       </>
     )}
   </Section>
+  {recent.total > 0 && (
+    <Section
+      title="Recent transactions"
+      description={`${recent.total.toLocaleString()} in this account.`}
+    >
+      <a
+        slot="actions"
+        href={`/transactions?account=${account.id}`}
+        class={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+      >
+        See all
+      </a>
+      <Table>
+        <TableBody>
+          {recent.transactions.slice(0, 8).map((t) => (
+            <TableRow className="relative">
+              <TableCell className="w-20 text-muted-foreground">
+                {formatShortDate(t.date)}
+              </TableCell>
+              <TableCell className="whitespace-normal">
+                {/* The whole row is the link. */}
+                <a
+                  href={`/transactions?account=${account.id}&q=${encodeURIComponent(t.merchant)}`}
+                  class="after:absolute after:inset-0 hover:underline"
+                >
+                  {t.merchant}
+                </a>
+                <span class="block text-sm text-muted-foreground">
+                  {t.categoryName}
+                </span>
+              </TableCell>
+              <TableCell
+                className={cn(
+                  "text-right tabular-nums",
+                  t.amount > 0 &&
+                    t.categoryType === "income" &&
+                    "font-medium text-primary",
+                  t.categoryType === "excluded" && "text-muted-foreground"
+                )}
+              >
+                <span class="inline-flex items-center gap-1">
+                  {t.amount > 0 && t.categoryType !== "income" && "+"}
+                  {formatMoney(t.amount)}
+                  <IconChevronRight
+                    className="size-4 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                </span>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Section>
+  )}
 </AppLayout>

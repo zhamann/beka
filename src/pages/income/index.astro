@@ -1,4 +1,5 @@
 ---
+import { IconCalendar, IconChevronRight } from "@tabler/icons-react"
 import { cn } from "cn"
 
 import {
@@ -167,6 +168,16 @@ const incoming = (key: keyof Totals) =>
             detail={`a month on average in ${year}`}
           />
         </div>
+      )}
+      {(jobs.length > 0 || others.length > 0) && (
+        <a
+          href="/income/deposits"
+          class="-mt-4 flex min-h-10 items-center gap-2 self-start text-sm font-medium text-primary hover:underline md:-mt-6"
+        >
+          <IconCalendar className="size-4" aria-hidden="true" />
+          See every deposit in {year}
+          <IconChevronRight className="size-4" aria-hidden="true" />
+        </a>
       )}
       {result.byMember.map(({ member }) => {
         const memberJobs = jobs.filter((job) => job.memberId === member.id)

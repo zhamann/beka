@@ -1,9 +1,11 @@
 ---
+import { CategorySettings } from "@/components/category-settings"
 import PageHeader from "@/components/page-header.astro"
 import { RewardCategories } from "@/components/reward-categories"
 import Section from "@/components/section.astro"
 import AppLayout from "@/layouts/app.astro"
 import { listCards, listRewardCategories } from "@/server/cards"
+import { listCategories } from "@/server/categories"
 import { getDatabase } from "@/server/database"
 
 const db = getDatabase()
@@ -25,8 +27,14 @@ for (const card of listCards(db)) {
 >
   <PageHeader
     title="Categories"
-    description="What card bonuses are earned on."
+    description="How transactions are sorted, and what card bonuses are earned on."
   />
+  <Section
+    title="Transaction categories"
+    description="Categories for transactions. The type decides where they count."
+  >
+    <CategorySettings client:load categories={listCategories(db)} />
+  </Section>
   <Section
     title="Reward categories"
     description="What card bonuses are earned on. Everything else earns each card's base rate."

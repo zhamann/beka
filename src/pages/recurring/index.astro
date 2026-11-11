@@ -1,0 +1,340 @@
+---
+import { IconChevronRight } from "@tabler/icons-react"
+import { cn } from "cn"
+
+import PageHeader from "@/components/page-header.astro"
+import {
+  RecurringButtons,
+  RecurringRowMenu,
+} from "@/components/recurring-buttons"
+import { RecurringDialog } from "@/components/recurring-dialog"
+import Section from "@/components/section.astro"
+import Stat from "@/components/stat.astro"
+import Strip from "@/components/strip.astro"
+import { Badge } from "@/components/ui/badge"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import AppLayout from "@/layouts/app.astro"
+import { formatDate, formatShortDate } from "@/lib/dates"
+import { formatMoney } from "@/lib/money"
+import { FREQUENCY_LABELS } from "@/lib/recurring"
+import { listAccounts } from "@/server/accounts"
+import { listCategories } from "@/server/categories"
+import { getDatabase } from "@/server/database"
+import { listRecurring, suggestionCharges } from "@/server/recurring"
+
+const db = getDatabase()
+// Largest monthly cost first, since that's what most changes the budget.
+const active = listRecurring(db).sort(
+  (a, b) => b.monthly - a.monthly || a.name.localeCompare(b.name)
+)
+const suggested = listRecurring(db, { statuses: ["suggested"] }).map(
+  (payment) => ({
+    payment,
+    charges: suggestionCharges(db, payment),
+  })
+)
+const ended = listRecurring(db, { statuses: ["ended"] })
+const overdue = active.filter((p) => p.overdue)
+const total = active.reduce((sum, p) => sum + p.monthly, 0)
+const categories = listCategories(db)
+// A name's last word stays with its chevron when the name wraps.
+const lastWord = (name: string) => name.split(" ").at(-1)
+const leadingWords = (name: string) =>
+  name.includes(" ") ? `${name.slice(0, name.lastIndexOf(" "))} ` : ""
+// The monthly total by category, largest first, the rest folded together.
+const totals = new Map<string, number>()
+for (const p of active) {
+  const name = p.categoryName ?? "Other"
+  totals.set(name, (totals.get(name) ?? 0) + p.monthly)
+}
+const ranked = [...totals].sort((a, b) => b[1] - a[1])
+// Up to three categories get their own part; slivers under 3% fold in too.
+const shown = ranked
+  .slice(0, 3)
+  .filter(([, amount], index) => index === 0 || amount >= total * 0.03)
+const folded = ranked.slice(shown.length)
+const byCategory = [
+  ...shown,
+  ...(folded.length
+    ? [["Everything else", folded.reduce((t, [, n]) => t + n, 0)] as const]
+    : []),
+].map(([label, amount], index) => ({
+  label,
+  amount,
+  tone: (index + 1) as 1 | 2 | 3 | 4,
+}))
+const accounts = listAccounts(db)
+---
+
+<AppLayout title="Recurring">
+  <PageHeader
+    title="Recurring"
+    description="Payments that repeat on a schedule. Their charges keep their categories but count here instead of in Spending."
+  >
+    <RecurringDialog client:load categories={categories} accounts={accounts} />
+  </PageHeader>
+  {active.length > 0 && (
+    <>
+      <Stat
+        rule={false}
+        label="A month"
+        value={formatMoney(total)}
+        detail={`across ${active.length} payment${active.length === 1 ? "" : "s"}`}
+      />
+      <Strip legend parts={byCategory} />
+    </>
+  )}
+  {suggested.length > 0 && (
+    <Section
+      title="Is this recurring?"
+      description="Found in your transactions. Confirm once and its past and future charges are flagged."
+    >
+      <details class="group/suggest" open={suggested.length <= 2}>
+        <summary
+          class:list={[
+            "mb-3 flex cursor-pointer list-none items-center gap-2 text-sm font-medium [&::-webkit-details-marker]:hidden",
+            suggested.length <= 2 && "hidden",
+          ]}
+        >
+          <IconChevronRight
+            className="size-4 transition-transform group-open/suggest:rotate-90"
+            aria-hidden="true"
+          />
+          {suggested.length} to review
+        </summary>
+        <div class="flex flex-col gap-3">
+          {suggested.map(({ payment, charges }) => (
+            <div class="flex flex-wrap items-start justify-between gap-3 rounded-xl border bg-card p-4 @2xl:p-5">
+              <div class="flex flex-col gap-1">
+                <span class="font-medium">{payment.merchant}</span>
+                <span class="text-sm text-muted-foreground">
+                  {formatMoney(payment.referenceAmount ?? 0)}{" "}
+                  {FREQUENCY_LABELS[payment.frequency].toLowerCase()}
+                  {new Set(charges.map((c) => c.amount)).size > 1 &&
+                    " (amount varies)"}
+                  {`, ${charges.length} charges`}
+                  {charges[0] && `, last ${formatDate(charges[0].date)}`}
+                </span>
+                <details class="group/charges text-sm">
+                  <summary class="flex cursor-pointer list-none items-center gap-1 text-primary [&::-webkit-details-marker]:hidden">
+                    <IconChevronRight
+                      className="size-4 transition-transform group-open/charges:rotate-90"
+                      aria-hidden="true"
+                    />
+                    See its {charges.length} charges
+                  </summary>
+                  <ul class="mt-2 grid max-w-xs grid-cols-[1fr_auto] gap-x-6 gap-y-0.5 text-muted-foreground">
+                    {charges.map((charge) => (
+                      <>
+                        <li>{formatDate(charge.date)}</li>
+                        <li class="text-right tabular-nums">
+                          {formatMoney(charge.amount)}
+                        </li>
+                      </>
+                    ))}
+                  </ul>
+                </details>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <RecurringButtons
+                  client:load
+                  id={payment.id}
+                  kind="suggestion"
+                  name={payment.merchant}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </details>
+    </Section>
+  )}
+  {overdue.length > 0 && (
+    <Section
+      title="Did these end?"
+      description="Their expected charges haven't shown up."
+    >
+      <div class="flex flex-col gap-3">
+        {overdue.map((payment) => (
+          <div class="flex flex-wrap items-start justify-between gap-3 rounded-xl border bg-card p-4 @2xl:p-5">
+            <div class="flex flex-col gap-1">
+              <span class="font-medium">{payment.name}</span>
+              <span class="text-sm text-muted-foreground">
+                Last charged{" "}
+                {payment.lastCharge && formatDate(payment.lastCharge)}
+              </span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <RecurringButtons client:load id={payment.id} kind="overdue" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </Section>
+  )}
+  <Section title="Payments">
+    {active.length === 0 ? (
+      <Empty className="border">
+        <EmptyHeader>
+          <EmptyTitle>No recurring payments yet</EmptyTitle>
+          <EmptyDescription>
+            Import transactions and Beka suggests the ones that repeat, or add
+            one by hand.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    ) : (
+      <>
+        <Table>
+          <TableHeader className="hidden @xl:table-header-group">
+            <TableRow>
+              <TableHead>Payment</TableHead>
+              <TableHead className="hidden @2xl:table-cell">
+                How often
+              </TableHead>
+              <TableHead className="hidden text-right @xl:table-cell">
+                Amount
+              </TableHead>
+              <TableHead className="text-right">A month</TableHead>
+              <TableHead className="hidden text-right @4xl:table-cell">
+                Next
+              </TableHead>
+              <TableHead className="w-0">
+                <span class="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {active.map((payment) => (
+              <TableRow>
+                <TableCell className="whitespace-normal">
+                  <div class="flex flex-col">
+                    <span class="flex flex-wrap items-center gap-2 font-medium">
+                      <a
+                        href={`/transactions?payment=${payment.id}`}
+                        class="py-2 hover:underline @xl:py-0"
+                      >
+                        {leadingWords(payment.name)}
+                        <span class="whitespace-nowrap">
+                          {lastWord(payment.name)}
+                          <IconChevronRight
+                            className="ml-1 inline size-4 align-[-2px] text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        </span>
+                      </a>
+                      {payment.overdue && (
+                        <Badge variant="outline">Did it end?</Badge>
+                      )}
+                    </span>
+                    <span class="hidden text-sm text-muted-foreground @xl:block">
+                      {[payment.categoryName, payment.accountName]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </span>
+                    <span class="text-sm text-muted-foreground @4xl:hidden">
+                      <span class="@xl:hidden">
+                        {payment.frequency === "monthly"
+                          ? FREQUENCY_LABELS[payment.frequency]
+                          : `${formatMoney(payment.amount)} ${FREQUENCY_LABELS[payment.frequency].toLowerCase()}`}
+                        {payment.amountMode === "average" &&
+                          payment.charges.length > 0 &&
+                          ", varies"}
+                        {payment.nextCharge && ", "}
+                      </span>
+                      {payment.nextCharge && (
+                        <span class="whitespace-nowrap">
+                          next {formatShortDate(payment.nextCharge)}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="hidden @2xl:table-cell">
+                  {FREQUENCY_LABELS[payment.frequency]}
+                </TableCell>
+                <TableCell
+                  className={cn(
+                    "hidden text-right tabular-nums @xl:table-cell",
+                    payment.amount === payment.monthly &&
+                      "text-muted-foreground"
+                  )}
+                >
+                  <span
+                    title={
+                      payment.amountMode === "average" &&
+                      payment.charges.length > 0
+                        ? "Average of its charges"
+                        : undefined
+                    }
+                  >
+                    {payment.amountMode === "average" &&
+                      payment.charges.length > 0 &&
+                      "≈"}
+                    {formatMoney(payment.amount)}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right font-medium tabular-nums">
+                  {formatMoney(payment.monthly)}
+                  <span class="block text-sm font-normal text-muted-foreground @xl:hidden">
+                    a month
+                  </span>
+                </TableCell>
+                <TableCell className="hidden text-right tabular-nums @4xl:table-cell">
+                  {payment.nextCharge
+                    ? formatShortDate(payment.nextCharge)
+                    : "—"}
+                </TableCell>
+                <TableCell>
+                  <RecurringRowMenu
+                    client:load
+                    payment={payment}
+                    categories={categories}
+                    accounts={accounts}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <p class="text-sm text-muted-foreground">
+          “≈” marks a bill that varies, shown at the average of its charges.
+        </p>
+      </>
+    )}
+  </Section>
+  {ended.length > 0 && (
+    <Section
+      title="Ended"
+      description="Past charges stay flagged, but they don't count toward Recurring."
+    >
+      <div class="flex flex-col gap-2">
+        {ended.map((payment) => (
+          <div class="flex items-center justify-between gap-3 rounded-lg border bg-card px-4 py-2.5">
+            <span>
+              {payment.name}{" "}
+              <span class="text-sm text-muted-foreground">
+                {payment.lastCharge &&
+                  `last charged ${formatDate(payment.lastCharge)}`}
+              </span>
+            </span>
+            <RecurringButtons client:load id={payment.id} kind="ended" />
+          </div>
+        ))}
+      </div>
+    </Section>
+  )}
+</AppLayout>

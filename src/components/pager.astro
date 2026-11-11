@@ -1,0 +1,73 @@
+---
+import { cn } from "cn"
+
+import { buttonVariants } from "@/components/ui/button"
+
+interface Props {
+  page: number
+  pages: number
+  /** The first and last items shown, and how many there are in all. */
+  first: number
+  last: number
+  total: number
+  href: (page: number) => string
+  /** Its landmark name; a second pager on the page needs its own. */
+  label?: string
+}
+
+const {
+  page,
+  pages,
+  first,
+  last,
+  total,
+  href,
+  label = "Pagination",
+} = Astro.props
+const button = cn(buttonVariants({ variant: "outline", size: "sm" }))
+const quiet = button
+---
+
+<nav
+  class="grid grid-cols-2 items-center gap-2 sm:grid-cols-[1fr_auto_1fr]"
+  aria-label={label}
+>
+  <div class="flex gap-1">
+    {page > 2 && (
+      <a href={href(1)} class={quiet}>
+        Newest
+      </a>
+    )}
+    {page > 1 ? (
+      <a href={href(page - 1)} class={button}>
+        Newer
+      </a>
+    ) : (
+      <span class={cn(button, "opacity-50")} aria-disabled="true">
+        Newer
+      </span>
+    )}
+  </div>
+  <span class="col-span-2 row-start-1 text-center text-sm text-muted-foreground sm:col-span-1 sm:row-start-auto">
+    {first.toLocaleString()}–{last.toLocaleString()} of {total.toLocaleString()}
+    <span class="hidden sm:inline">
+      , page {page} of {pages}
+    </span>
+  </span>
+  <div class="flex justify-end gap-1">
+    {page < pages ? (
+      <a href={href(page + 1)} class={button}>
+        Older
+      </a>
+    ) : (
+      <span class={cn(button, "opacity-50")} aria-disabled="true">
+        Older
+      </span>
+    )}
+    {page < pages - 1 && (
+      <a href={href(pages)} class={quiet}>
+        Oldest
+      </a>
+    )}
+  </div>
+</nav>

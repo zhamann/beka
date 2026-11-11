@@ -3,8 +3,11 @@ import {
   IconCash,
   IconCreditCard,
   IconDots,
+  IconFileImport,
+  IconListDetails,
   IconLayoutDashboard,
   IconReceipt2,
+  IconRepeat,
   IconSettings,
   IconX,
   type Icon,
@@ -47,7 +50,11 @@ const overview: NavItem = {
 const groups: { label: string; items: NavItem[] }[] = [
   {
     label: "Each month",
-    items: [{ href: "/income", label: "Income", icon: IconCash }],
+    items: [
+      { href: "/income", label: "Income", icon: IconCash },
+      { href: "/recurring", label: "Recurring", icon: IconRepeat },
+      { href: "/transactions", label: "Transactions", icon: IconListDetails },
+    ],
   },
   {
     label: "What you hold",
@@ -60,12 +67,19 @@ const groups: { label: string; items: NavItem[] }[] = [
 ]
 
 const tools: NavItem[] = [
+  { href: "/import", label: "Import", icon: IconFileImport },
   { href: "/settings", label: "Settings", icon: IconSettings },
 ]
 
 /** The pages on the phone's tab bar; the rest open from More. */
 const tabs: NavItem[] = [
   { ...overview, short: "Home" },
+  {
+    href: "/transactions",
+    label: "Transactions",
+    short: "Activity",
+    icon: IconListDetails,
+  },
   { href: "/accounts", label: "Accounts", icon: IconBuildingBank },
 ]
 

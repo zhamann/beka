@@ -1,0 +1,220 @@
+---
+import { cn } from "cn"
+
+import PageHeader from "@/components/page-header.astro"
+import Pager from "@/components/pager.astro"
+import { AddTransactionButton } from "@/components/transaction-dialog"
+import { TransactionTable } from "@/components/transaction-table"
+import { TransactionFilters } from "@/components/transaction-filters"
+import { buttonVariants } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import AppLayout from "@/layouts/app.astro"
+import { formatMoney } from "@/lib/money"
+import { formatMonth } from "@/lib/months"
+import { listAccounts } from "@/server/accounts"
+import { listCategories } from "@/server/categories"
+import { getDatabase } from "@/server/database"
+import { parseId } from "@/server/params"
+import { listRecurring } from "@/server/recurring"
+import {
+  listTransactions,
+  TRANSACTION_PAGE_SIZE,
+  transactionMonths,
+} from "@/server/transactions"
+
+const db = getDatabase()
+const params = Astro.url.searchParams
+const monthParam = (name: string) =>
+  /^\d{4}-\d{2}$/.test(params.get(name) ?? "") ? params.get(name)! : undefined
+const month = monthParam("month")
+const from = monthParam("from")
+const to = monthParam("to")
+const excludeRecurring = params.get("recurring") === "exclude"
+const filter = {
+  search: params.get("q") ?? undefined,
+  accountId: parseId(params.get("account")),
+  categoryId: parseId(params.get("category")),
+  month,
+  from,
+  to,
+  excludeRecurring: excludeRecurring || undefined,
+  recurringId: parseId(params.get("payment")),
+  categoryIds: (params.get("categories") ?? "")
+    .split(",")
+    .map((value) => parseId(value))
+    .filter((value): value is number => value !== undefined),
+}
+const page = parseId(params.get("page")) ?? 1
+const { transactions, total, sum } = listTransactions(db, filter, page)
+const accounts = [...listAccounts(db), ...listAccounts(db, { archived: true })]
+const categories = listCategories(db)
+const months = transactionMonths(db)
+const pages = Math.ceil(total / TRANSACTION_PAGE_SIZE)
+const pageLink = (n: number) => {
+  const next = new URLSearchParams(params)
+  next.set("page", String(n))
+  return `/transactions?${next}`
+}
+const filtered = Object.values(filter).some(
+  (value) =>
+    value !== undefined &&
+    value !== "" &&
+    !(Array.isArray(value) && value.length === 0)
+)
+const recurringOptions = listRecurring(db).map(({ id, name }) => ({ id, name }))
+const firstShown = (page - 1) * TRANSACTION_PAGE_SIZE + 1
+const lastShown = Math.min(page * TRANSACTION_PAGE_SIZE, total)
+
+// Filters that arrive from Spending and the Dashboard, kept while searching.
+const hidden: Record<string, string> = {}
+if (from) hidden.from = from
+if (to) hidden.to = to
+if (excludeRecurring) hidden.recurring = "exclude"
+if (filter.recurringId !== undefined)
+  hidden.payment = String(filter.recurringId)
+if (filter.categoryIds.length) hidden.categories = filter.categoryIds.join(",")
+const payment = listRecurring(db, {
+  statuses: ["active", "ended", "suggested"],
+}).find((p) => p.id === filter.recurringId)
+const scope = [
+  from && to
+    ? `${formatMonth(from, "long")} to ${formatMonth(to, "long")}`
+    : from
+      ? `from ${formatMonth(from, "long")}`
+      : to && `through ${formatMonth(to, "long")}`,
+  excludeRecurring && "recurring payments left out, as on Spending",
+  payment && `charges for ${payment.name}`,
+  filter.categoryIds.length > 0 &&
+    `${filter.categoryIds.length} smaller categories`,
+].filter(Boolean)
+const without = (...names: string[]) => {
+  const next = new URLSearchParams(params)
+  for (const name of [...names, "page"]) next.delete(name)
+  const query = next.toString()
+  return query ? `/transactions?${query}` : "/transactions"
+}
+const count = `${total.toLocaleString()} transaction${total === 1 ? "" : "s"}`
+const everything = filtered ? listTransactions(db, {}, 1).total : total
+---
+
+<AppLayout title="Transactions">
+  <PageHeader
+    title="Transactions"
+    description={
+      !filtered
+        ? count
+        : total > 0
+          ? `${count} of ${everything.toLocaleString()}, ${formatMoney(sum)} in all`
+          : `None of ${everything.toLocaleString()} transactions match`
+    }
+  >
+    <AddTransactionButton
+      client:load
+      accounts={accounts}
+      categories={categories}
+      recurring={recurringOptions}
+    />
+    <a href="/import" class={cn(buttonVariants({ variant: "outline" }))}>
+      Import
+    </a>
+  </PageHeader>
+  <TransactionFilters
+    client:load
+    search={filter.search}
+    month={month}
+    categoryId={filter.categoryId}
+    accountId={filter.accountId}
+    months={months}
+    categories={categories.map(({ id, name }) => ({ id, name }))}
+    accounts={accounts.map(({ id, name }) => ({ id, name }))}
+    hidden={hidden}
+  />
+  {(scope.length > 0 || filtered) && (
+    <div class="-mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground md:-mt-8">
+      {scope.length > 0 && <span>Showing {scope.join(", ")}.</span>}
+      {scope.length > 0 && (
+        <a
+          href={without("from", "to", "recurring", "payment", "categories")}
+          class={cn(buttonVariants({ variant: "link" }), "h-auto p-0")}
+        >
+          Show every date and payment
+        </a>
+      )}
+      {filtered && (
+        <a
+          href="/transactions"
+          class={cn(buttonVariants({ variant: "link" }), "h-auto p-0")}
+        >
+          Clear all filters
+        </a>
+      )}
+    </div>
+  )}
+  {total === 0 ? (
+    <Empty className="border">
+      <EmptyHeader>
+        <EmptyTitle>
+          {filtered ? "No matches" : "No transactions yet"}
+        </EmptyTitle>
+        <EmptyDescription>
+          {filtered
+            ? "Try another search, or clear the filters above."
+            : "Import a CSV from your bank or card, or add one by hand."}
+        </EmptyDescription>
+      </EmptyHeader>
+      {!filtered && (
+        <EmptyContent>
+          <a href="/import" class={cn(buttonVariants())}>
+            Import transactions
+          </a>
+        </EmptyContent>
+      )}
+    </Empty>
+  ) : (
+    <>
+      <h2 class="sr-only">Transactions, newest first</h2>
+      {pages > 1 && (
+        <div class="hidden @2xl:block">
+          <Pager
+            label="Pagination, top"
+            page={page}
+            pages={pages}
+            first={firstShown}
+            last={lastShown}
+            total={total}
+            href={pageLink}
+          />
+        </div>
+      )}
+      <TransactionTable
+        client:load
+        transactions={transactions}
+        accounts={accounts}
+        categories={categories}
+        recurring={recurringOptions}
+      />
+    </>
+  )}
+  {pages > 1 && (
+    <Pager
+      page={page}
+      pages={pages}
+      first={firstShown}
+      last={lastShown}
+      total={total}
+      href={pageLink}
+    />
+  )}
+  {total > 0 && (
+    <p class="text-sm text-muted-foreground">
+      Green amounts are income. A “+” marks money in that isn't income, like a
+      transfer or a card payment.
+    </p>
+  )}
+</AppLayout>
