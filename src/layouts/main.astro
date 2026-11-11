@@ -1,0 +1,39 @@
+---
+import "@/styles/global.css"
+import { parseTheme, THEME_COOKIE } from "@/lib/theme"
+
+interface Props {
+  title?: string
+}
+
+const { title } = Astro.props
+const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value)
+---
+
+<html lang="en" data-theme={theme} class:list={{ dark: theme === "dark" }}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="apple-mobile-web-app-title" content="Beka" />
+    <title>{title ? `${title} · Beka` : "Beka"}</title>
+    <script is:inline>
+      // Apply the picked theme, following the device's setting for "system".
+      const deviceDark = matchMedia("(prefers-color-scheme: dark)")
+      const applyTheme = () => {
+        const root = document.documentElement
+        const theme = root.dataset.theme
+        root.classList.toggle(
+          "dark",
+          theme === "dark" || (theme === "system" && deviceDark.matches)
+        )
+      }
+      applyTheme()
+      deviceDark.addEventListener("change", applyTheme)
+      addEventListener("themechange", applyTheme)
+    </script>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

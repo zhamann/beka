@@ -1,0 +1,33 @@
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# environment variables
+.env*
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+
+# local data: the app's database, backups, and personal seed files
+data/
+local/
+
+# SQLite databases anywhere else, in case DATA_DIR points inside the repo
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3

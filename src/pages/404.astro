@@ -1,0 +1,19 @@
+---
+import { cn } from "cn"
+
+import PageHeader from "@/components/page-header.astro"
+import { buttonVariants } from "@/components/ui/button"
+import AppLayout from "@/layouts/app.astro"
+---
+
+<AppLayout title="Not found">
+  <PageHeader
+    title="Not found"
+    description="That page doesn't exist, or what it showed was deleted."
+  />
+  <div class="flex flex-wrap gap-2">
+    <a href="/" class={cn(buttonVariants())}>
+      Go to the Dashboard
+    </a>
+  </div>
+</AppLayout>
