@@ -1,0 +1,119 @@
+---
+import { IconChevronRight } from "@tabler/icons-react"
+/**
+ * A page's answer set as a sum, like Income − Recurring − Spend = Left over.
+ * On phones it stacks as a ledger with the signs in a gutter and the result
+ * over a double rule; given room (56rem, as wide as a desktop page), it reads across. `parts` draws the strip under
+ * it, each part's width its share of the whole, toned to match its term.
+ */
+import Strip from "@/components/strip.astro"
+import { type Part, type Tone, TONES } from "@/lib/parts"
+
+interface Term {
+  label: string
+  value: string
+  detail?: string
+  /** The sign before this term; "=" marks the result. */
+  op?: "+" | "−" | "="
+  /** The strip part this term is, shown as a swatch by its label. */
+  tone?: Tone
+  href?: string
+}
+
+interface Props {
+  label: string
+  terms: Term[]
+  parts?: Part[]
+  /** Name the parts under the strip, when the terms above don't. */
+  legend?: boolean
+}
+
+const { label, terms, parts = [], legend = false } = Astro.props
+const opLabels = { "+": "plus", "−": "minus", "=": "equals" }
+---
+
+<section aria-label={label} class="@container flex flex-col gap-6">
+  <div class="flex flex-col @4xl:grid @4xl:grid-flow-col @4xl:grid-rows-[auto_auto_auto] @4xl:justify-start @4xl:gap-x-6 @4xl:gap-y-1.5 @6xl:gap-x-10">
+    {terms.map((term, index) => {
+      const result = term.op === "="
+      const beforeResult = terms[index + 1]?.op === "="
+      const Tag = term.href ? "a" : "div"
+      return (
+        <>
+          {term.op && (
+            <span
+              class="hidden self-end font-heading text-3xl/none text-muted-foreground @4xl:row-start-2 @4xl:block @4xl:self-baseline"
+              aria-hidden="true"
+            >
+              {term.op}
+            </span>
+          )}
+          <Tag
+            href={term.href}
+            class:list={[
+              "grid min-w-0 grid-cols-[1.25rem_1fr_auto] items-baseline gap-x-3 py-3 outline-none focus-visible:rounded-md focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background @4xl:row-span-3 @4xl:grid-rows-subgrid @4xl:grid-cols-1 @4xl:gap-y-1.5 @4xl:py-0",
+              result && "ledger-total @4xl:border-0",
+              !result && !beforeResult && "border-b @4xl:border-0",
+              term.href && "group",
+            ]}
+          >
+            <span
+              class="font-heading text-2xl/none text-muted-foreground @4xl:hidden"
+              aria-hidden="true"
+            >
+              {term.op}
+            </span>
+            {term.op && <span class="sr-only">{opLabels[term.op]}</span>}
+            <span class="flex flex-col gap-0.5 @4xl:row-start-1">
+              <span class="flex items-center gap-2 font-medium @4xl:text-sm @4xl:text-muted-foreground">
+                {term.tone && (
+                  <span
+                    class:list={[
+                      "size-2.5 shrink-0 rounded-xs",
+                      TONES[term.tone],
+                    ]}
+                    aria-hidden="true"
+                  />
+                )}
+                <span class="group-hover:underline">{term.label}</span>
+                {term.href && (
+                  <IconChevronRight
+                    className="size-4 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                )}
+              </span>
+              {term.detail && (
+                <span class="hidden text-sm text-muted-foreground @sm:block @4xl:hidden">
+                  {term.detail}
+                </span>
+              )}
+            </span>
+            <span
+              class:list={[
+                "self-baseline font-heading tabular-nums @4xl:row-start-2",
+                result
+                  ? "text-3xl/none text-primary @4xl:text-4xl/none @6xl:text-5xl/none"
+                  : "text-2xl/none @4xl:text-3xl/none",
+              ]}
+            >
+              {term.value}
+            </span>
+            {/* On the narrowest screens the detail gets its own line. */}
+            {term.detail && (
+              <span class="col-span-2 col-start-2 pt-1 text-sm text-muted-foreground @sm:hidden">
+                {term.detail}
+              </span>
+            )}
+            {term.detail && (
+              <span class="hidden text-sm text-muted-foreground @4xl:row-start-3 @4xl:block">
+                {term.detail}
+              </span>
+            )}
+          </Tag>
+        </>
+      )
+    })}
+  </div>
+  {parts.length > 0 && <Strip parts={parts} legend={legend} />}
+</section>

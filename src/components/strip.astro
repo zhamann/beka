@@ -1,0 +1,62 @@
+---
+/**
+ * A whole split into parts, each part's width its share, in the order its
+ * statement reads. The part that matters most takes the darkest tone
+ * (`chart-1`), so it reads strongest wherever it falls. With
+ * `legend`, each part's name and share sit under the strip.
+ */
+import { type Part, TONES } from "@/lib/parts"
+
+interface Props {
+  parts: Part[]
+  legend?: boolean
+}
+
+const { parts, legend = false } = Astro.props
+const shown = parts.filter((part) => part.amount > 0)
+const whole = shown.reduce((sum, part) => sum + part.amount, 0)
+const share = (amount: number) => {
+  const percent = Math.round((amount / whole) * 100)
+  return percent < 1 ? "under 1%" : `${percent}%`
+}
+---
+
+{whole > 0 && (
+  <div class="flex flex-col gap-3">
+    <div
+      class="flex h-3 gap-0.5 overflow-hidden rounded-full"
+      role="img"
+      aria-label={shown
+        .map((part) => `${part.label} ${share(part.amount)}`)
+        .join(", ")}
+    >
+      {shown.map((part) => (
+        <span
+          class:list={[
+            "h-full basis-0 shadow-[inset_0_0_0_1px_var(--border)]",
+            TONES[part.tone],
+          ]}
+          style={{ flexGrow: part.amount }}
+        />
+      ))}
+    </div>
+    {legend && (
+      <ul class="flex flex-wrap gap-x-5 gap-y-1.5 text-sm" aria-hidden="true">
+        {shown.map((part) => (
+          <li class="flex items-center gap-2">
+            <span
+              class:list={[
+                "size-2.5 shrink-0 rounded-xs shadow-[inset_0_0_0_1px_var(--border)]",
+                TONES[part.tone],
+              ]}
+            />
+            {part.label}
+            <span class="text-muted-foreground tabular-nums">
+              {share(part.amount)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+)}

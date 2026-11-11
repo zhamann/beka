@@ -1,0 +1,191 @@
+---
+import { IconChevronRight } from "@tabler/icons-react"
+import { cn } from "cn"
+
+import { UpdateBalanceButton } from "@/components/account-list"
+import { NewLoanButton } from "@/components/new-loan-button"
+import PageHeader from "@/components/page-header.astro"
+import Stat from "@/components/stat.astro"
+import { Badge } from "@/components/ui/badge"
+import { buttonVariants } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import AppLayout from "@/layouts/app.astro"
+import { age, daysBetween, formatDate, today } from "@/lib/dates"
+import type { DebtOrder } from "@/lib/loans"
+import { formatMoney, formatPercent } from "@/lib/money"
+import { listAccounts } from "@/server/accounts"
+import { listCards } from "@/server/cards"
+import { getDatabase } from "@/server/database"
+import { freshnessRules } from "@/server/settings"
+import { listMembers } from "@/server/household"
+import { rankDebts } from "@/server/loans"
+
+const db = getDatabase()
+const accountsById = new Map(listAccounts(db).map((a) => [a.id, a]))
+// Card balances you clear each month count in Debts on Accounts, not here.
+const paidInFull = listCards(db)
+  .filter((card) => !card.carriesBalance)
+  .reduce((sum, card) => sum + (card.balance?.amount ?? 0), 0)
+const rules = freshnessRules(db)
+/** Whether a balance is past the out-of-date rule (or missing). */
+const stale = (asOf: string | null) =>
+  rules.balances &&
+  (asOf === null || daysBetween(asOf, today()) > rules.balanceDays)
+const order: DebtOrder =
+  Astro.url.searchParams.get("order") === "balance" ? "balance" : "rate"
+const debts = rankDebts(db, order)
+const sum = (pick: (d: (typeof debts)[number]) => number | null) =>
+  debts.reduce((total, debt) => total + (pick(debt) ?? 0), 0)
+const orders: { value: DebtOrder; label: string }[] = [
+  { value: "rate", label: "Highest rate" },
+  { value: "balance", label: "Smallest balance" },
+]
+---
+
+<AppLayout title="Loans">
+  <PageHeader
+    title="Loans"
+    description="Your debts in the order extra cash should go to them."
+  >
+    <NewLoanButton client:load members={listMembers(db)} />
+  </PageHeader>
+  {debts.length === 0 ? (
+    <Empty className="border">
+      <EmptyHeader>
+        <EmptyTitle>No loans</EmptyTitle>
+        <EmptyDescription>
+          Add each loan with its interest rate and minimum payment. Credit cards
+          you mark as carrying a balance show up here too.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <NewLoanButton client:load members={listMembers(db)} />
+      </EmptyContent>
+    </Empty>
+  ) : (
+    <>
+      <div class="grid grid-cols-2 gap-6 @xl:grid-cols-3 [&>:first-child]:col-span-2 @xl:[&>:first-child]:col-span-1">
+        <Stat
+          label="Total owed"
+          value={formatMoney(sum((d) => d.balance))}
+          detail={
+            paidInFull > 0
+              ? `plus ${formatMoney(paidInFull)} on cards paid in full`
+              : "cards paid in full aren't counted"
+          }
+        />
+        <Stat
+          label="Minimum payments"
+          value={formatMoney(sum((d) => d.minimumPayment))}
+          detail="a month"
+        />
+        <Stat
+          label="Interest"
+          value={formatMoney(sum((d) => d.monthlyInterest))}
+          detail="a month at current balances"
+        />
+      </div>
+      <nav class="flex flex-wrap items-center gap-2" aria-label="Order">
+        <span class="text-sm text-muted-foreground">Order by</span>
+        {orders.map((o) => (
+          <a
+            href={o.value === "rate" ? "/loans" : "/loans?order=balance"}
+            aria-current={o.value === order ? "page" : undefined}
+            class={cn(
+              buttonVariants({
+                variant: o.value === order ? "secondary" : "ghost",
+                size: "sm",
+              })
+            )}
+          >
+            {o.label}
+          </a>
+        ))}
+      </nav>
+      <h2 class="sr-only">Debts in payoff order</h2>
+      <ol class="flex flex-col gap-3">
+        {debts.map((debt, index) => (
+          <li class="grid grid-cols-[1.75rem_1fr] items-start gap-x-3 rounded-xl border bg-card p-4 @2xl:p-5">
+            <span class="font-heading text-2xl/none text-muted-foreground tabular-nums">
+              {index + 1}
+            </span>
+            <div class="flex min-w-0 flex-wrap items-start gap-x-6 gap-y-3">
+              <div class="flex min-w-48 flex-1 flex-col gap-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <a
+                    href={`/accounts/${debt.id}`}
+                    class="inline-flex min-h-10 items-center gap-1 self-start font-medium hover:underline @xl:min-h-0"
+                  >
+                    {debt.name}
+                    <IconChevronRight
+                      className="size-4 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </a>
+                </div>
+                <span class="text-sm text-muted-foreground">
+                  {[debt.label, debt.ownerName ?? "Joint"].join(", ")}
+                </span>
+                <span class="flex flex-wrap items-center gap-2 pt-1 empty:hidden">
+                  {index === 0 && <Badge>Extra cash goes here</Badge>}
+                  {stale(debt.balanceAsOf) && (
+                    <Badge variant="outline">
+                      {debt.balanceAsOf
+                        ? `${age(daysBetween(debt.balanceAsOf, today()))} old`
+                        : "No balance yet"}
+                    </Badge>
+                  )}
+                </span>
+              </div>
+              <dl class="grid w-full grid-cols-2 gap-x-6 gap-y-3 text-sm @3xl:w-auto @3xl:grid-cols-[4rem_8.5rem_6.5rem_7.5rem]">
+                <div>
+                  <dt class="text-muted-foreground">Rate</dt>
+                  <dd class="font-medium tabular-nums">
+                    {formatPercent(debt.rate)}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-muted-foreground">Owed</dt>
+                  <dd class="font-medium tabular-nums">
+                    {debt.balance === null ? "—" : formatMoney(debt.balance)}
+                  </dd>
+                  {debt.balanceAsOf && (
+                    <dd class="text-sm text-muted-foreground">
+                      as of {formatDate(debt.balanceAsOf)}
+                    </dd>
+                  )}
+                </div>
+                <div>
+                  <dt class="text-muted-foreground">Minimum</dt>
+                  <dd class="tabular-nums">
+                    {debt.minimumPayment === null
+                      ? "—"
+                      : formatMoney(debt.minimumPayment)}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-muted-foreground">Interest a month</dt>
+                  <dd class="tabular-nums">
+                    {formatMoney(debt.monthlyInterest)}
+                  </dd>
+                </div>
+              </dl>
+              {accountsById.get(debt.id) && (
+                <UpdateBalanceButton
+                  client:load
+                  account={accountsById.get(debt.id)!}
+                />
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </>
+  )}
+</AppLayout>

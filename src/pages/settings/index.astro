@@ -11,6 +11,8 @@ import { ItemGroup } from "@/components/ui/item"
 import AppLayout from "@/layouts/app.astro"
 import { parseTheme, THEME_COOKIE } from "@/lib/theme"
 
+import { listRewardCategories } from "@/server/cards"
+
 import { getDatabase } from "@/server/database"
 import { listMembers } from "@/server/household"
 
@@ -18,16 +20,17 @@ const db = getDatabase()
 const sections = [
   ["household", "Household"],
   ["appearance", "Appearance"],
-  ["history", "History"],
+  ["categories", "Categories and history"],
 ] as const
 const members = listMembers(db)
 const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value)
+const rewardCount = listRewardCategories(db).length
 ---
 
 <AppLayout title="Settings">
   <PageHeader
     title="Settings"
-    description="Your household, how Beka looks, and every change made so far."
+    description="Your household, how Beka looks and sorts things, and every change made so far."
   />
   <nav
     aria-label="Settings sections"
@@ -59,8 +62,17 @@ const theme = parseTheme(Astro.cookies.get(THEME_COOKIE)?.value)
   >
     <ThemeSetting client:load theme={theme} />
   </Section>
-  <Section id="history" title="History" description="Every change made so far.">
+  <Section
+    id="categories"
+    title="Categories and history"
+    description="What card rewards are earned on, and every change made so far."
+  >
     <ItemGroup>
+      <LinkItem
+        href="/settings/categories"
+        title="Categories"
+        description={`${rewardCount} reward categories for card bonuses.`}
+      />
       <LinkItem
         href="/settings/changes"
         title="Change log"

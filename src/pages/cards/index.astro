@@ -1,0 +1,270 @@
+---
+import { cn } from "cn"
+
+import { IconChevronRight } from "@tabler/icons-react"
+
+import {
+  accountMeta,
+  BalanceSummary,
+  UpdateBalanceButton,
+} from "@/components/account-list"
+import CardSummary from "@/components/card-summary.astro"
+import { NewCardButton } from "@/components/new-card-button"
+import PageHeader from "@/components/page-header.astro"
+import Section from "@/components/section.astro"
+import { buttonVariants } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import AppLayout from "@/layouts/app.astro"
+import { listCards, listRewardCategories, whichCard } from "@/server/cards"
+import { getDatabase } from "@/server/database"
+import { listMembers } from "@/server/household"
+
+const db = getDatabase()
+const cards = listCards(db)
+const percent = (value: number) => `${+value.toFixed(2)}%`
+/** Notes joined into one phrase, lowercased after the first. */
+const sentence = (notes: string[]) =>
+  notes
+    .filter(Boolean)
+    .map((note, i) => (i === 0 ? note : note[0].toLowerCase() + note.slice(1)))
+    .join(", ")
+/** The condition a bonus is limited to, like "Online groceries" from "Online groceries only". */
+const scope = (notes: string[]) => {
+  const only = notes.find((note) => /\bonly$/i.test(note))
+  return only?.replace(/\s*only$/i, "")
+}
+const points = (rate: string) => (rate.endsWith("x") ? `${rate} points` : "")
+
+// Categories where the everyday card wins anyway fold into "Everything else",
+// so the tiles left are the ones where a different card pays more.
+const all = whichCard(db)
+const fallback = all.find((g) => g.categoryId === null)
+const sameAsFallback = (g: (typeof all)[number]) =>
+  fallback !== undefined &&
+  g.categoryId !== null &&
+  g.picks[0]?.cardId === fallback.picks[0]?.cardId &&
+  g.picks[0]?.effective === fallback.picks[0]?.effective &&
+  g.picks[0]?.notes.length === 0
+const folded = all.filter(sameAsFallback).map((g) => g.name)
+const guide = all
+  .filter((g) => !sameAsFallback(g) && g.picks.length > 0)
+  .map((g) => {
+    const [best, ...rest] = g.picks
+    // When the winner comes with a cap or condition, say what to use otherwise.
+    const otherwise =
+      g.categoryId !== null && best.notes.length > 0
+        ? rest.find((pick) => pick.notes.length === 0)
+        : undefined
+    return {
+      ...g,
+      best,
+      // The fallback already has its own row, so "Next best" skips it.
+      rest: otherwise ? rest.filter((pick) => pick !== otherwise) : rest,
+      otherwise,
+      includes: g.categoryId === null ? folded : [],
+    }
+  })
+/** One line of the guide: where to use which card, and what it returns. */
+interface Row {
+  key: string
+  /** The category, or blank for a line that continues the one above. */
+  category: string
+  /** A narrower case of the category, like "Online groceries" or "After the cap". */
+  when?: string
+  pick: (typeof guide)[number]["best"]
+  /** Points, caps, and conditions worth knowing at the register. */
+  fine: string
+  next?: (typeof guide)[number]["best"]
+}
+const rows: Row[] = guide.flatMap((g): Row[] => {
+  if (!g.otherwise) {
+    return [
+      {
+        key: g.name,
+        category: g.name,
+        when: g.includes.length
+          ? `Including ${g.includes.join(", ")}`
+          : undefined,
+        pick: g.best,
+        fine: sentence([points(g.best.rate), ...g.best.notes]),
+        next: g.rest[0],
+      },
+    ]
+  }
+  // A bonus limited by a condition or a cap: the bonus line, then the line
+  // for everything it doesn't cover.
+  const condition = scope(g.best.notes)
+  return [
+    {
+      key: g.name,
+      category: g.name,
+      when: condition ? `${condition} only` : g.best.notes[0],
+      pick: g.best,
+      fine: sentence([
+        points(g.best.rate),
+        ...g.best.notes.filter(
+          (note, i) => !/\bonly$/i.test(note) && !(i === 0 && !condition)
+        ),
+      ]),
+      next: g.rest[0],
+    },
+    {
+      key: `${g.name}-otherwise`,
+      category: "",
+      when: condition ? `Other ${g.name.toLowerCase()}` : "After the cap",
+      pick: g.otherwise,
+      fine: points(g.otherwise.rate),
+    },
+  ]
+})
+---
+
+<AppLayout title="Cards">
+  <PageHeader
+    title="Cards"
+    description="Your credit cards and where each one earns the most."
+  >
+    <NewCardButton
+      client:load
+      members={listMembers(db)}
+      rewardCategories={listRewardCategories(db)}
+    />
+  </PageHeader>
+  {cards.length === 0 ? (
+    <Empty className="border">
+      <EmptyHeader>
+        <EmptyTitle>No cards</EmptyTitle>
+        <EmptyDescription>
+          Add each card with its rewards to see which one to use where.
+        </EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <NewCardButton
+          client:load
+          members={listMembers(db)}
+          rewardCategories={listRewardCategories(db)}
+        />
+      </EmptyContent>
+    </Empty>
+  ) : (
+    <>
+      <Section
+        title="Which card?"
+        description="The card that returns the most in each category, counting points at the value you set."
+      >
+        <a
+          slot="actions"
+          href="#your-cards"
+          class={cn(
+            buttonVariants({ variant: "link" }),
+            "min-h-10 px-0 @xl:hidden"
+          )}
+        >
+          Jump to your cards
+        </a>
+        <div class="overflow-hidden rounded-xl border bg-card">
+          <div
+            class="hidden grid-cols-[12rem_1fr_6rem_15rem] gap-x-6 border-b px-5 py-2.5 text-sm font-medium text-muted-foreground @3xl:grid"
+            aria-hidden="true"
+          >
+            <span>Category</span>
+            <span>Use</span>
+            <span class="text-right">Returns</span>
+            <span>Next best</span>
+          </div>
+          <ul class="flex flex-col divide-y">
+            {rows.map((row) => (
+              <li
+                class:list={[
+                  "grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-0.5 px-4 py-3 @3xl:grid-cols-[12rem_1fr_6rem_15rem] @3xl:gap-x-6 @3xl:px-5",
+                  !row.category && "bg-muted/40",
+                ]}
+              >
+                <span class="col-span-2 @3xl:col-span-1">
+                  {row.category && (
+                    <span class="font-heading text-lg/tight">
+                      {row.category}
+                    </span>
+                  )}
+                  {row.when && (
+                    <span
+                      class:list={[
+                        "block text-sm text-muted-foreground",
+                        !row.category && "@3xl:pl-3",
+                      ]}
+                    >
+                      {row.when}
+                    </span>
+                  )}
+                </span>
+                <span class="flex flex-col">
+                  <a
+                    href={`/accounts/${row.pick.cardId}`}
+                    class="font-medium hover:underline"
+                  >
+                    {row.pick.cardName}
+                  </a>
+                  {row.fine && (
+                    <span class="text-sm text-muted-foreground">
+                      {row.fine}
+                    </span>
+                  )}
+                </span>
+                <span class="text-right font-heading text-2xl/none tabular-nums">
+                  {percent(row.pick.effective)}
+                </span>
+                <span class="col-span-2 text-sm text-muted-foreground @3xl:col-span-1">
+                  {row.next && (
+                    <>
+                      <span class="@3xl:hidden">Next best: </span>
+                      {row.next.cardName}, {percent(row.next.effective)}
+                    </>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </Section>
+      <Section title="Your cards" id="your-cards">
+        <div class="flex flex-col gap-3">
+          {cards.map((card) => (
+            <div
+              id={`card-${card.id}`}
+              class="flex flex-col gap-3 rounded-xl border bg-card p-4 @2xl:p-5"
+            >
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="flex flex-col gap-1">
+                  <a
+                    href={`/accounts/${card.id}`}
+                    class="inline-flex min-h-10 items-center gap-1 self-start font-medium hover:underline @xl:min-h-0"
+                  >
+                    {card.name}
+                    <IconChevronRight
+                      className="size-4 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                  </a>
+                  <span class="text-sm text-muted-foreground">
+                    {accountMeta(card)}
+                  </span>
+                </div>
+                <div class="flex w-full items-center justify-between gap-4 @xl:w-auto @xl:justify-end">
+                  <BalanceSummary account={card} />
+                  <UpdateBalanceButton client:load account={card} />
+                </div>
+              </div>
+              <CardSummary card={card} />
+            </div>
+          ))}
+        </div>
+      </Section>
+    </>
+  )}
+</AppLayout>
