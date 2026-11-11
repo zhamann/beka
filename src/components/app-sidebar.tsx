@@ -1,6 +1,7 @@
 import {
   IconDots,
   IconLayoutDashboard,
+  IconSettings,
   IconX,
   type Icon,
 } from "@tabler/icons-react"
@@ -41,7 +42,9 @@ const overview: NavItem = {
 /** The sidebar's groups: where money comes from and goes, then what you hold. */
 const groups: { label: string; items: NavItem[] }[] = []
 
-const tools: NavItem[] = []
+const tools: NavItem[] = [
+  { href: "/settings", label: "Settings", icon: IconSettings },
+]
 
 /** The pages on the phone's tab bar; the rest open from More. */
 const tabs: NavItem[] = [{ ...overview, short: "Home" }]

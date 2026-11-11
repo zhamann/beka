@@ -1,0 +1,181 @@
+---
+import { IconChevronRight } from "@tabler/icons-react"
+import { cn } from "cn"
+
+import PageHeader from "@/components/page-header.astro"
+import { Badge } from "@/components/ui/badge"
+import { buttonVariants } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import AppLayout from "@/layouts/app.astro"
+import { describeChange } from "@/lib/changes"
+import { formatDayHeading } from "@/lib/dates"
+import { ACTIVITY_PAGE_SIZE, listActivity } from "@/server/activity"
+import { getDatabase } from "@/server/database"
+import { parseId } from "@/server/params"
+
+const beforeId = parseId(Astro.url.searchParams.get("before"))
+/** The local day a timestamp falls on, `YYYY-MM-DD`. */
+const day = (at: string | undefined) => {
+  if (!at) return undefined
+  const date = new Date(at)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+}
+const formatTime = (at: string) =>
+  new Date(at).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  })
+const by = Astro.url.searchParams.get("by")
+const actor = by === "agent" || by === "app" ? by : undefined
+const entries = listActivity(getDatabase(), { beforeId, actor })
+const filters = [
+  { label: "Everything", value: undefined },
+  { label: "By your agent", value: "agent" },
+  { label: "In the app", value: "app" },
+] as const
+const last = entries.at(-1)
+---
+
+<AppLayout
+  title="Change log"
+  breadcrumb={[
+    { label: "Settings", href: "/settings" },
+    { label: "Change log" },
+  ]}
+>
+  <PageHeader
+    title="Change log"
+    description="Every change, newest first. Open a row to see what changed."
+  />
+  <nav aria-label="Who made the change" class="flex flex-wrap gap-2">
+    {filters.map((filter) => (
+      <a
+        href={
+          filter.value
+            ? `/settings/changes?by=${filter.value}`
+            : "/settings/changes"
+        }
+        aria-current={actor === filter.value ? "page" : undefined}
+        class={cn(
+          buttonVariants({
+            variant: actor === filter.value ? "secondary" : "ghost",
+            size: "sm",
+          })
+        )}
+      >
+        {filter.label}
+      </a>
+    ))}
+  </nav>
+  {entries.length === 0 ? (
+    <Empty className="border">
+      <EmptyHeader>
+        <EmptyTitle>No changes yet</EmptyTitle>
+        <EmptyDescription>
+          Changes show up here as you make them.
+        </EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  ) : (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="hidden @2xl:table-cell">Time</TableHead>
+          <TableHead>Change</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {entries.map((entry, index) => (
+          <>
+            {day(entry.at) !== day(entries[index - 1]?.at) && (
+              <TableRow className="bg-muted/60 hover:bg-muted/60">
+                <TableCell
+                  colSpan={2}
+                  className="py-2 text-sm font-medium text-muted-foreground"
+                >
+                  {formatDayHeading(day(entry.at)!)}
+                </TableCell>
+              </TableRow>
+            )}
+            <TableRow>
+              <TableCell className="hidden align-top whitespace-nowrap text-muted-foreground @2xl:table-cell">
+                {formatTime(entry.at)}
+              </TableCell>
+              <TableCell className="align-top whitespace-normal">
+                <details class="group">
+                  <summary class="flex cursor-pointer list-none items-start gap-2 [&::-webkit-details-marker]:hidden">
+                    <IconChevronRight
+                      className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+                      aria-hidden="true"
+                    />
+                    <span>
+                      {entry.summary}
+                      {entry.actor === "agent" && (
+                        <Badge className="ml-2 align-middle">Agent</Badge>
+                      )}
+                      <span class="block text-sm text-muted-foreground @2xl:hidden">
+                        {formatTime(entry.at)},{" "}
+                        {entry.actor === "agent"
+                          ? "by your agent"
+                          : "in the app"}
+                      </span>
+                    </span>
+                  </summary>
+                  {describeChange(entry.before, entry.after).length > 0 ? (
+                    <dl class="mt-2 grid gap-x-4 gap-y-1 text-sm @2xl:grid-cols-[10rem_1fr]">
+                      {describeChange(entry.before, entry.after).map(
+                        (field) => (
+                          <>
+                            <dt class="text-muted-foreground">{field.label}</dt>
+                            <dd>
+                              {field.before !== undefined &&
+                              field.after !== undefined ? (
+                                <>
+                                  <span class="text-muted-foreground line-through">
+                                    {field.before}
+                                  </span>{" "}
+                                  → {field.after}
+                                </>
+                              ) : (
+                                (field.after ?? field.before)
+                              )}
+                            </dd>
+                          </>
+                        )
+                      )}
+                    </dl>
+                  ) : (
+                    <p class="mt-2 text-sm text-muted-foreground">
+                      No field-level details were recorded.
+                    </p>
+                  )}
+                </details>
+              </TableCell>
+            </TableRow>
+          </>
+        ))}
+      </TableBody>
+    </Table>
+  )}
+  {last && entries.length === ACTIVITY_PAGE_SIZE && (
+    <a
+      href={`/settings/changes?before=${last.id}${actor ? `&by=${actor}` : ""}`}
+      class={cn(buttonVariants({ variant: "secondary" }), "self-start")}
+    >
+      Older changes
+    </a>
+  )}
+</AppLayout>

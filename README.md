@@ -6,6 +6,10 @@ Beka shows where things stand today; it doesn't plan or forecast. Its data is av
 
 The name is the beka of Exodus 38:26, half a shekel paid by "every one that went to be numbered": money for counting a household.
 
+## What it tracks
+
+- **Light and dark themes**: follow the device, or pick one in Settings → Appearance. Each device remembers its choice.
+
 ## Development
 
 Requires Node 26 and pnpm.
