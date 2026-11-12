@@ -1,6 +1,7 @@
 /**
- * The logo: a banknote with its portrait oval, drawn on Tabler's 24px grid so
- * it sits with the icons. Mirrored in `public/favicon.svg`; keep them in sync.
+ * The logo: a beka, the ancient half-shekel stone weight, resting
+ * on the double rule that marks a total. Drawn on Tabler's 24px grid so it sits
+ * with the icons. Mirrored in `public/favicon.svg`; keep them in sync.
  */
 export function BekaMark({ className }: { className?: string }) {
   return (
@@ -14,9 +15,8 @@ export function BekaMark({ className }: { className?: string }) {
       className={className}
       aria-hidden
     >
-      <rect x="2.5" y="6" width="19" height="12" rx="2" />
-      <ellipse cx="12" cy="12" rx="2.75" ry="3.25" />
-      <path d="M6 12h.01M18 12h.01" />
+      <path d="M6 16.5c0-6 2.7-10 6-10s6 4 6 10" />
+      <path d="M3.5 16.5h17M3.5 20h17" />
     </svg>
   )
 }
