@@ -6,11 +6,19 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Install the pnpm version pinned by package.json's `packageManager`.
 RUN npm install --global "$(node -p 'require("./package.json").packageManager')"
 
-FROM base AS build
+# `dist/` is plain JavaScript, so it's built once on the machine running the
+# build. Building it for each platform would run Vite under emulation, which
+# is slow enough to hang the release.
+FROM --platform=$BUILDPLATFORM node:26-slim AS build
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN npm install --global "$(node -p 'require("./package.json").packageManager')"
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm build
 
+# Production dependencies include native binaries (sharp), so they're
+# installed for each target platform.
 FROM base AS prod-deps
 RUN pnpm install --frozen-lockfile --prod
 
