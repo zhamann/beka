@@ -1,6 +1,7 @@
 ---
 import {
   IconCheck,
+  IconChevronLeft,
   IconChevronRight,
   IconEqual,
   IconTrendingDown,
@@ -36,6 +37,7 @@ import { getDatabase } from "@/server/database"
 import { listMembers } from "@/server/household"
 import { listRecurring } from "@/server/recurring"
 import {
+  dashboardMonth,
   firstTransactionMonth,
   shiftMonth,
   spendingPace,
@@ -83,20 +85,24 @@ const nextStep = steps.find((step) => !step.done)
 const share = (cents: number) =>
   data.income > 0 ? `${Math.round((cents / data.income) * 100)}%` : null
 
-// This month's spending against each category's average, recurring left out
-// like the Dashboard's Spend.
-const thisMonth = on.slice(0, 7)
-const lastComplete = shiftMonth(thisMonth, -1)
+// The month shown (this one unless another is asked for), its spending
+// against each category's average over the 12 months before it, recurring
+// left out like the Dashboard's Spend.
+const view = dashboardMonth(db, Astro.url.searchParams.get("month"), on)
+const shown = view.month
+const monthHref = (month: string) =>
+  month === on.slice(0, 7) ? "/" : `/?month=${month}`
+const lastComplete = shiftMonth(shown, -1)
 const first = firstTransactionMonth(db)
 const windowStart = shiftMonth(lastComplete, -11)
 const month = spendingTable(db, {
   from: first && first > windowStart ? first : windowStart,
-  to: thisMonth,
-  on,
+  to: shown,
+  on: view.on,
 })
-const paceData = spendingPace(db, on)
+const paceData = spendingPace(db, view.on)
 const pace = paceData.day / paceData.days
-const spentSoFar = (byMonth: Record<string, number>) => byMonth[thisMonth] ?? 0
+const spentSoFar = (byMonth: Record<string, number>) => byMonth[shown] ?? 0
 const ranked = [...month.categories].sort(
   (a, b) =>
     Math.max(b.average, spentSoFar(b.byMonth)) -
@@ -108,7 +114,7 @@ const rows = [
   ...top.map((c) => ({
     name: c.name,
     fill: categoryFill(c.color),
-    href: `/transactions?category=${c.id}&month=${thisMonth}&recurring=exclude`,
+    href: `/transactions?category=${c.id}&month=${shown}&recurring=exclude`,
     spent: spentSoFar(c.byMonth),
     average: c.average,
   })),
@@ -117,14 +123,14 @@ const rows = [
         {
           name: "Everything else",
           fill: "bg-muted-foreground",
-          href: `/transactions?categories=${rest.map((c) => c.id).join(",")}&month=${thisMonth}&recurring=exclude`,
+          href: `/transactions?categories=${rest.map((c) => c.id).join(",")}&month=${shown}&recurring=exclude`,
           spent: rest.reduce((sum, c) => sum + spentSoFar(c.byMonth), 0),
           average: rest.reduce((sum, c) => sum + c.average, 0),
         },
       ]
     : []),
 ]
-const totalSpent = month.totals[thisMonth] ?? 0
+const totalSpent = month.totals[shown] ?? 0
 const fill = (spent: number, average: number) =>
   average > 0 ? Math.min(spent / average, 1) : spent > 0 ? 1 : 0
 const whole = (cents: number) => formatMoney(cents, { whole: true })
@@ -142,7 +148,8 @@ const STANDING_LABEL = {
   ahead: "Spending faster than usual",
   ok: "",
 }
-// How far under or over a usual month's pace today's total is.
+// How far under or over a usual month's pace today's total is, or for a past
+// month, how far under or over a whole usual month.
 const usualByNow = paceData.usual[paceData.day - 1]
 const gap = usualByNow === undefined ? null : usualByNow - totalSpent
 const paceNote = (spent: number, average: number) =>
@@ -152,7 +159,9 @@ const paceNote = (spent: number, average: number) =>
       ? ", over the average"
       : spent > average * pace
         ? ", spending faster than usual"
-        : ", within an even pace"
+        : view.current
+          ? ", within an even pace"
+          : ", within the average"
 
 /** What each reminder's link does. */
 const ACTION: Record<Reminder["kind"], string> = {
@@ -168,13 +177,70 @@ const ACTION: Record<Reminder["kind"], string> = {
 
 <AppLayout title="Dashboard">
   <PageHeader
-    title={started ? formatMonth(thisMonth, "long") : "Dashboard"}
+    title={started ? formatMonth(shown, "long") : "Dashboard"}
     description={
-      started
-        ? `Day ${paceData.day} of ${paceData.days}. This month's spending so far, then what a typical month looks like.`
-        : "What you've spent this month, what a typical month looks like, and what you hold."
+      !started
+        ? "What you've spent this month, what a typical month looks like, and what you hold."
+        : view.current
+          ? `Day ${paceData.day} of ${paceData.days}. This month's spending so far, then what a typical month looks like.`
+          : "The whole month's spending against the months before it, then what a typical month looks like."
     }
-  />
+  >
+    {started && (
+      <nav class="flex gap-1" aria-label="Months">
+        {!view.current && (
+          <a
+            href="/"
+            class={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            This month
+          </a>
+        )}
+        {view.previous ? (
+          <a
+            href={monthHref(view.previous)}
+            class={cn(buttonVariants({ variant: "outline", size: "icon-sm" }))}
+            aria-label={`Previous month, ${formatMonth(view.previous, "long")}`}
+          >
+            <IconChevronLeft aria-hidden="true" />
+          </a>
+        ) : (
+          <span
+            class={cn(
+              buttonVariants({ variant: "outline", size: "icon-sm" }),
+              "opacity-50"
+            )}
+            aria-disabled="true"
+            aria-label="Previous month"
+            role="link"
+          >
+            <IconChevronLeft aria-hidden="true" />
+          </span>
+        )}
+        {view.next ? (
+          <a
+            href={monthHref(view.next)}
+            class={cn(buttonVariants({ variant: "outline", size: "icon-sm" }))}
+            aria-label={`Next month, ${formatMonth(view.next, "long")}`}
+          >
+            <IconChevronRight aria-hidden="true" />
+          </a>
+        ) : (
+          <span
+            class={cn(
+              buttonVariants({ variant: "outline", size: "icon-sm" }),
+              "opacity-50"
+            )}
+            aria-disabled="true"
+            aria-label="Next month"
+            role="link"
+          >
+            <IconChevronRight aria-hidden="true" />
+          </span>
+        )}
+      </nav>
+    )}
+  </PageHeader>
   {nextStep && (
     <Section
       title="Set up your household"
@@ -230,10 +296,10 @@ const ACTION: Record<Reminder["kind"], string> = {
           <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
             <div class="flex flex-col gap-1">
               <h2 class="text-base font-medium text-muted-foreground">
-                Spent so far
+                {view.current ? "Spent so far" : "Spent"}
               </h2>
               <a
-                href={`/transactions?month=${thisMonth}&recurring=exclude`}
+                href={`/transactions?month=${shown}&recurring=exclude`}
                 class="self-start font-heading text-6xl/none tabular-nums hover:underline md:text-7xl/none"
               >
                 {whole(totalSpent)}
@@ -260,14 +326,17 @@ const ACTION: Record<Reminder["kind"], string> = {
                   <IconEqual aria-hidden="true" />
                 )}
                 {gap === 0
-                  ? "Right on your usual pace"
-                  : `${whole(Math.abs(gap))} ${gap > 0 ? "under" : "over"} your usual pace`}
+                  ? view.current
+                    ? "Right on your usual pace"
+                    : "Right on a usual month"
+                  : `${whole(Math.abs(gap))} ${gap > 0 ? "under" : "over"} ${view.current ? "your usual pace" : "a usual month"}`}
               </Badge>
             )}
           </div>
           <PaceChart
             client:load
             month={paceData.month}
+            current={view.current}
             day={paceData.day}
             days={paceData.days}
             spent={paceData.spent}
@@ -280,14 +349,17 @@ const ACTION: Record<Reminder["kind"], string> = {
           <CardHeader>
             <CardTitle className="text-lg">Where it's gone</CardTitle>
             <CardDescription>
-              Each category so far against its monthly average. The tick marks
-              an even pace for today.
+              {view.current
+                ? "Each category so far against its monthly average. The tick marks an even pace for today."
+                : "Each category against its monthly average over the months before."}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {rows.length === 0 ? (
               <p class="text-sm text-muted-foreground">
-                Import transactions to compare this month with your averages.
+                {view.current
+                  ? "Import transactions to compare this month with your averages."
+                  : `No spending recorded in ${formatMonth(shown, "long")}.`}
               </p>
             ) : (
               <ul class="-my-3 flex flex-col divide-y">
@@ -352,10 +424,12 @@ const ACTION: Record<Reminder["kind"], string> = {
                             width: `${(fill(row.spent, row.average) * 100).toFixed(1)}%`,
                           }}
                         />
-                        <span
-                          class="absolute -inset-y-1 w-0.5 rounded-full bg-foreground/70"
-                          style={{ left: `${(pace * 100).toFixed(1)}%` }}
-                        />
+                        {view.current && (
+                          <span
+                            class="absolute -inset-y-1 w-0.5 rounded-full bg-foreground/70"
+                            style={{ left: `${(pace * 100).toFixed(1)}%` }}
+                          />
+                        )}
                       </span>
                     </a>
                   </li>

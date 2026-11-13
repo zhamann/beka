@@ -17,29 +17,27 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart"
 import { formatMoney } from "@/lib/money"
-import { monthAbbreviation } from "@/lib/months"
-
-const config = {
-  spent: { label: "This month", color: "var(--spending)" },
-  usual: { label: "A usual month", color: "var(--muted-foreground)" },
-} satisfies ChartConfig
+import { formatMonth, monthAbbreviation } from "@/lib/months"
 
 const tick = { fill: "var(--muted-foreground)", fontSize: 14 }
 
 /**
- * This month's spending building up day by day, against how a usual month
- * builds up (dotted). The line stops at today; the rule from it to the usual
- * line is how far under or over the month is running.
+ * A month's spending building up day by day, against how a usual month
+ * builds up (dotted). The line stops at today, or runs to the end of a past
+ * month; the rule from it to the usual line is how far under or over it is.
  */
 export function PaceChart({
   month,
+  current = true,
   day,
   days,
   spent,
   usual,
 }: {
-  /** The month in progress, as `YYYY-MM`. */
+  /** The month shown, as `YYYY-MM`. */
   month: string
+  /** Whether it's the month in progress, rather than one that's over. */
+  current?: boolean
   day: number
   days: number
   /** Cents spent by the end of each day so far. */
@@ -48,6 +46,11 @@ export function PaceChart({
   usual: number[]
 }) {
   const name = monthAbbreviation(month)
+  const label = current ? "This month" : formatMonth(month, "long")
+  const config = {
+    spent: { label, color: "var(--spending)" },
+    usual: { label: "A usual month", color: "var(--muted-foreground)" },
+  } satisfies ChartConfig
   // Day 0 is the month's start, so both lines rise from nothing.
   const data = Array.from({ length: days + 1 }, (_, index) => ({
     day: index,
@@ -65,7 +68,7 @@ export function PaceChart({
       <ul className="flex flex-wrap gap-x-5 gap-y-1 text-sm" aria-hidden="true">
         <li className="flex items-center gap-2">
           <span className="h-0.5 w-5 rounded-full bg-spending" />
-          This month
+          {label}
         </li>
         {usual.length > 0 && (
           <li className="flex items-center gap-2 text-muted-foreground">
@@ -79,7 +82,11 @@ export function PaceChart({
         className="aspect-auto h-52 w-full md:h-64"
       >
         <ComposedChart
-          title="Spending so far this month"
+          title={
+            current
+              ? "Spending so far this month"
+              : `Spending in ${formatMonth(month, "long")}`
+          }
           desc={
             usualNow === undefined
               ? `${formatMoney(now, { whole: true })} spent by ${name} ${day}. Use the arrow keys to step through the days.`
