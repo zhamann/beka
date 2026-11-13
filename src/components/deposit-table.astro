@@ -100,7 +100,7 @@ const { month, label, notes, checkNote, destinations } = Astro.props
         <TableCell className="hidden align-top whitespace-normal text-muted-foreground @5xl:table-cell">
           {destinations(deposit)}
         </TableCell>
-        <TableCell className="text-right align-top font-medium text-primary tabular-nums">
+        <TableCell className="text-right align-top font-medium text-income tabular-nums">
           {formatMoney(deposit.amount)}
         </TableCell>
       </TableRow>
@@ -113,7 +113,7 @@ const { month, label, notes, checkNote, destinations } = Astro.props
         <span class="@md:hidden">Total</span>
       </TableCell>
       <TableCell className="hidden @5xl:table-cell" />
-      <TableCell className="text-right font-medium text-primary tabular-nums">
+      <TableCell className="text-right font-medium text-income tabular-nums">
         {formatMoney(month.total)}
       </TableCell>
     </TableRow>

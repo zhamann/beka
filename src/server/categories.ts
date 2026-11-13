@@ -1,6 +1,6 @@
 import type { DatabaseSync } from "node:sqlite"
 
-import type { CategoryType } from "@/lib/categories"
+import { CATEGORY_COLORS, type CategoryType } from "@/lib/categories"
 
 import { logChange } from "./activity"
 import { transaction } from "./database"
@@ -19,6 +19,8 @@ export interface Category {
   type: CategoryType
   hidden: boolean
   builtin: boolean
+  /** Which of the theme's `category-N` colors it wears, 1 to 8. */
+  color: number
   /** How many transactions use it. */
   transactionCount: number
 }
@@ -29,6 +31,7 @@ interface CategoryRow {
   type: CategoryType
   hidden: number
   builtin: number
+  color: number
   transactionCount: number
 }
 
@@ -38,7 +41,7 @@ const toCategory = (row: CategoryRow): Category => ({
   builtin: row.builtin === 1,
 })
 
-const select = `SELECT c.id, c.name, c.type, c.hidden, c.builtin,
+const select = `SELECT c.id, c.name, c.type, c.hidden, c.builtin, c.color,
   (SELECT count(*) FROM transactions t WHERE t.category_id = c.id) AS transactionCount
   FROM categories c`
 
@@ -67,6 +70,24 @@ export interface CategoryInput {
   name: string
   type: CategoryType
   hidden: boolean
+  /** Left out, a new category takes the color the fewest others wear. */
+  color?: number
+}
+
+/** The color the fewest spending categories wear, the lowest on a tie. */
+function quietestColor(db: DatabaseSync): number {
+  const used = new Map(
+    (
+      db
+        .prepare(
+          "SELECT color, count(*) AS count FROM categories WHERE type = 'spending' GROUP BY color"
+        )
+        .all() as { color: number; count: number }[]
+    ).map((row) => [row.color, row.count])
+  )
+  return CATEGORY_COLORS.map(({ color }) => color).reduce((best, color) =>
+    (used.get(color) ?? 0) < (used.get(best) ?? 0) ? color : best
+  )
 }
 
 export function createCategory(
@@ -79,10 +100,14 @@ export function createCategory(
       id = Number(
         db
           .prepare(
-            "INSERT INTO categories (name, type, hidden) VALUES (?, ?, ?)"
+            "INSERT INTO categories (name, type, hidden, color) VALUES (?, ?, ?, ?)"
           )
-          .run(input.name.trim(), input.type, input.hidden ? 1 : 0)
-          .lastInsertRowid
+          .run(
+            input.name.trim(),
+            input.type,
+            input.hidden ? 1 : 0,
+            input.color ?? quietestColor(db)
+          ).lastInsertRowid
       )
     } catch (error) {
       translate(error, { [SQLITE_CONSTRAINT_UNIQUE]: duplicate })
@@ -111,8 +136,14 @@ export function updateCategory(
     }
     try {
       db.prepare(
-        "UPDATE categories SET name = ?, type = ?, hidden = ? WHERE id = ?"
-      ).run(input.name.trim(), input.type, input.hidden ? 1 : 0, id)
+        "UPDATE categories SET name = ?, type = ?, hidden = ?, color = ? WHERE id = ?"
+      ).run(
+        input.name.trim(),
+        input.type,
+        input.hidden ? 1 : 0,
+        input.color ?? before.color,
+        id
+      )
     } catch (error) {
       translate(error, { [SQLITE_CONSTRAINT_UNIQUE]: duplicate })
     }

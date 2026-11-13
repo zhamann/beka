@@ -1,4 +1,4 @@
-/** How dark a part of a whole is drawn, darkest (`chart-1`) first. */
+/** How dark a part of a whole is inked, darkest (`chart-1`) first. */
 export type Tone = 1 | 2 | 3 | 4
 
 /** One part of a whole, drawn by `Strip`. */

@@ -6,7 +6,12 @@ import { listCategories } from "./categories"
 import { openDatabase } from "./database"
 import { importTransactions, type ImportRow } from "./imports"
 import { createRecurring } from "./recurring"
-import { averageSpend, monthsBetween, spendingTable } from "./spending"
+import {
+  averageSpend,
+  monthsBetween,
+  spendingPace,
+  spendingTable,
+} from "./spending"
 
 let db: DatabaseSync
 let accountId: number
@@ -135,6 +140,52 @@ describe("spending", () => {
     expect(averageSpend(db, "2025-03-15")).toEqual({
       average: Math.round(999_00 / 2),
       months: 2,
+    })
+  })
+
+  it("builds up this month day by day against a usual month that ends on Spend", () => {
+    importTransactions(
+      db,
+      [
+        row("2026-09-02", -30, "Groceries"),
+        row("2026-09-30", -10, "Groceries"),
+        row("2026-10-01", -20, "Dining & Drinks"),
+        row("2026-10-31", -40, "Shopping"),
+        row("2026-10-15", 500, "Income"),
+        row("2026-11-03", -15, "Groceries"),
+      ],
+      "",
+      "2026-11-05"
+    )
+    const pace = spendingPace(db, "2026-11-05")
+    expect(pace).toMatchObject({
+      month: "2026-11",
+      day: 5,
+      days: 30,
+      months: 2,
+    })
+    expect(pace.spent).toEqual([0, 0, 15_00, 15_00, 15_00])
+    expect(pace.usual).toHaveLength(30)
+    // Day 1: September's nothing and October's $20.
+    expect(pace.usual[0]).toBe(10_00)
+    expect(pace.usual[1]).toBe(25_00)
+    expect(pace.usual[28]).toBe(25_00)
+    // A 30-day month ends with October's 31st counted, on the average.
+    expect(pace.usual[29]).toBe(50_00)
+    expect(pace.usual[29]).toBe(averageSpend(db, "2026-11-05").average)
+  })
+
+  it("has no usual month before a month is complete", () => {
+    importTransactions(
+      db,
+      [row("2026-11-02", -12, "Groceries")],
+      "",
+      "2026-11-03"
+    )
+    expect(spendingPace(db, "2026-11-03")).toMatchObject({
+      spent: [0, 12_00, 12_00],
+      usual: [],
+      months: 0,
     })
   })
 })

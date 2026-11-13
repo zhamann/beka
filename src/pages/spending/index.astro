@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import AppLayout from "@/layouts/app.astro"
+import { categoryFill } from "@/lib/categories"
 import { today } from "@/lib/dates"
 import { formatMoney } from "@/lib/money"
 import { formatMonth, monthAbbreviation } from "@/lib/months"
@@ -203,6 +204,13 @@ const ranges = [
                 class="group grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 py-2.5 text-sm @2xl:grid-cols-[13rem_1fr_6rem_4.5rem]"
               >
                 <span class="inline-flex items-center gap-1">
+                  <span
+                    class:list={[
+                      "mr-1.5 size-2.5 shrink-0 rounded-full",
+                      categoryFill(category.color),
+                    ]}
+                    aria-hidden="true"
+                  />
                   <span class="group-hover:underline">{category.name}</span>
                   <IconChevronRight
                     className="size-4 text-muted-foreground"
@@ -211,7 +219,10 @@ const ranges = [
                 </span>
                 <span class="col-span-2 row-start-2 h-2 rounded-full bg-muted @2xl:col-span-1 @2xl:col-start-2 @2xl:row-start-1">
                   <span
-                    class="block h-full rounded-full bg-chart-2"
+                    class:list={[
+                      "block h-full rounded-full",
+                      categoryFill(category.color),
+                    ]}
                     style={{
                       // Each bar is its share of all spending, matching the percent beside it.
                       width: `${(table.average > 0 ? (category.average / table.average) * 100 : 0).toFixed(1)}%`,

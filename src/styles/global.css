@@ -1,15 +1,26 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/public-sans";
-@import "@fontsource/spectral/500.css";
-@import "@fontsource/spectral/600.css";
+@import "@fontsource-variable/figtree";
+@import "@fontsource-variable/gabarito";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: 'Spectral', serif;
-    --font-sans: 'Public Sans Variable', sans-serif;
+    --font-heading: 'Gabarito Variable', 'Figtree Variable', sans-serif;
+    --font-sans: 'Figtree Variable', sans-serif;
+    --color-income: var(--income);
+    --color-recurring: var(--recurring);
+    --color-spending: var(--spending);
+    --color-left-over: var(--left-over);
+    --color-category-1: var(--category-1);
+    --color-category-2: var(--category-2);
+    --color-category-3: var(--category-3);
+    --color-category-4: var(--category-4);
+    --color-category-5: var(--category-5);
+    --color-category-6: var(--category-6);
+    --color-category-7: var(--category-7);
+    --color-category-8: var(--category-8);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -53,87 +64,118 @@
 }
 
 /*
- * A household statement in greenback ink. Light mode is cool paper with the
- * sidebar in a note's deep green; dark mode is the note's back at night.
- * Cards and tables are sheets (`card`) laid on the page (`background`).
- * `chart-1` to `chart-4` are the parts of a whole, darkest first: left over,
- * spend, recurring on the Dashboard; deposited, taxes, deductions on a stub.
- * `ledger` is the rule under totals, a double line by accounting custom.
+ * Daylight: black ink on white sheets, with color kept for money. The chrome
+ * (page, sidebar, buttons, rules) is neutral, so the only hues on a page are
+ * the ones that mean something:
+ *
+ * - `income` is money coming in, as text and as a fill.
+ * - `recurring`, `spending`, and `left-over` are where a month's income goes.
+ * - `category-1` to `category-8` are the colors a spending category can wear
+ *   (`CATEGORY_COLORS` names them). The order keeps neighbors apart for
+ *   color-blind readers, so add to the end rather than reorder.
+ * - `chart-1` to `chart-4` are the parts of any other whole, drawn by `Strip`
+ *   in ink, darkest first, so they never borrow a meaning from the hues.
+ * - `chart-bar` is monthly spending on the Spending page.
+ *
+ * Dark mode has its own steps of the same hues, picked for the dark sheet.
+ * `ledger` is the rule over a total.
  */
 :root {
-    --background: #f1f4f0;
-    --foreground: #111d17;
-    --card: #fcfdfb;
-    --card-foreground: #111d17;
-    --popover: #fcfdfb;
-    --popover-foreground: #111d17;
-    --primary: #24533b;
-    --primary-foreground: #f2f8f4;
-    --secondary: #e1e8e2;
-    --secondary-foreground: #18301f;
-    --muted: #e5ebe6;
-    --muted-foreground: #4f5e55;
-    --accent: #dde7df;
-    --accent-foreground: #18301f;
-    --destructive: #a8352a;
-    --border: #d0d9d2;
-    --input: #d6dfd8;
+    --background: #f4f5f6;
+    --foreground: #16181c;
+    --card: #ffffff;
+    --card-foreground: #16181c;
+    --popover: #ffffff;
+    --popover-foreground: #16181c;
+    --primary: #16181c;
+    --primary-foreground: #ffffff;
+    --secondary: #eceef0;
+    --secondary-foreground: #16181c;
+    --muted: #eef0f2;
+    --muted-foreground: #5b616b;
+    --accent: #eceef0;
+    --accent-foreground: #16181c;
+    --destructive: #c0392b;
+    --border: #e2e4e8;
+    --input: #e2e4e8;
     /* Outlines form controls at 3:1 against the page and cards. */
-    --control-border: #7d8c82;
-    --ring: #3f6f55;
-    --ledger: #7d8f83;
-    --chart-bar: #3a7053;
-    --chart-1: #24533b;
-    --chart-2: #5b8c6f;
-    --chart-3: #86ad94;
-    --chart-4: #a9c4b2;
-    --chart-5: #18301f;
-    --radius: 0.625rem;
-    --sidebar: #1c3f2d;
-    --sidebar-foreground: #e3eee6;
-    --sidebar-primary: #a8d5b9;
-    --sidebar-primary-foreground: #12291d;
-    --sidebar-accent: rgb(227 238 230 / 11%);
-    --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: rgb(227 238 230 / 12%);
-    --sidebar-ring: #a8d5b9;
+    --control-border: #858b95;
+    --ring: #6b7280;
+    --ledger: #16181c;
+    --income: #0e7f51;
+    --recurring: #2a78d6;
+    --spending: #eb6834;
+    --left-over: #8b4fd8;
+    --category-1: #2a78d6;
+    --category-2: #eb6834;
+    --category-3: #1baf7a;
+    --category-4: #eda100;
+    --category-5: #e87ba4;
+    --category-6: #008300;
+    --category-7: #6250d6;
+    --category-8: #e34948;
+    --chart-bar: var(--spending);
+    --chart-1: #16181c;
+    --chart-2: #5b616b;
+    --chart-3: #9ba1aa;
+    --chart-4: #cfd3d8;
+    --chart-5: var(--income);
+    --radius: 0.75rem;
+    --sidebar: #ffffff;
+    --sidebar-foreground: #3d424a;
+    --sidebar-primary: #16181c;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #eef0f2;
+    --sidebar-accent-foreground: #16181c;
+    --sidebar-border: #e2e4e8;
+    --sidebar-ring: #6b7280;
 }
 
 .dark {
-    --background: #0c1510;
-    --foreground: #e6eee8;
-    --card: #18291f;
-    --card-foreground: #e6eee8;
-    --popover: #14221a;
-    --popover-foreground: #e6eee8;
-    --primary: #a3d1b5;
-    --primary-foreground: #0c1510;
-    --secondary: #20322a;
-    --secondary-foreground: #e6eee8;
-    --muted: #1b2b23;
-    --muted-foreground: #a4b5aa;
-    --accent: #24382d;
-    --accent-foreground: #e6eee8;
-    --destructive: #ec8a79;
-    --border: rgb(230 238 232 / 14%);
-    --input: rgb(230 238 232 / 18%);
-    --control-border: #5d7266;
-    --ring: #5b8c6f;
-    --ledger: rgb(230 238 232 / 45%);
-    --chart-bar: #86b99b;
-    --chart-1: #b4e0c5;
-    --chart-2: #7fb094;
-    --chart-3: #5f8a72;
-    --chart-4: #456452;
-    --chart-5: #d6e8dc;
-    --sidebar: #1a2e23;
-    --sidebar-foreground: #e6eee8;
-    --sidebar-primary: #a3d1b5;
-    --sidebar-primary-foreground: #0c1510;
-    --sidebar-accent: rgb(230 238 232 / 8%);
+    --background: #111214;
+    --foreground: #eceef1;
+    --card: #1b1d21;
+    --card-foreground: #eceef1;
+    --popover: #1f2226;
+    --popover-foreground: #eceef1;
+    --primary: #eceef1;
+    --primary-foreground: #111214;
+    --secondary: #282b31;
+    --secondary-foreground: #eceef1;
+    --muted: #24272c;
+    --muted-foreground: #a3a8b1;
+    --accent: #2a2d33;
+    --accent-foreground: #eceef1;
+    --destructive: #ff7a6b;
+    --border: rgb(255 255 255 / 10%);
+    --input: rgb(255 255 255 / 14%);
+    --control-border: #6f7682;
+    --ring: #8a9099;
+    --ledger: rgb(236 238 241 / 70%);
+    --income: #2bab78;
+    --recurring: #3987e5;
+    --spending: #d95926;
+    --left-over: #a274ea;
+    --category-1: #3987e5;
+    --category-2: #d95926;
+    --category-3: #199e70;
+    --category-4: #c98500;
+    --category-5: #d55181;
+    --category-6: #008300;
+    --category-7: #9085e9;
+    --category-8: #e66767;
+    --chart-1: #eceef1;
+    --chart-2: #a3a8b1;
+    --chart-3: #6f7682;
+    --chart-4: #474c55;
+    --sidebar: #16181b;
+    --sidebar-foreground: #c5c9d0;
+    --sidebar-primary: #eceef1;
+    --sidebar-primary-foreground: #111214;
+    --sidebar-accent: #24272c;
     --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: rgb(230 238 232 / 9%);
-    --sidebar-ring: #5b8c6f;
+    --sidebar-border: rgb(255 255 255 / 8%);
+    --sidebar-ring: #8a9099;
 }
 
 /* Native controls (date pickers, scrollbars) follow the theme. */
@@ -163,18 +205,22 @@
   h3 {
     text-wrap: balance;
   }
+  /* Gabarito is drawn for display, so it's set heavier and a little tighter. */
+  [class~="font-heading"] {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
   p {
     text-wrap: pretty;
   }
 }
 
-/* A total: a single rule above, a double rule below. */
+/* A total: a heavy rule above. */
 @utility ledger-total {
-  border-top: 1px solid var(--ledger);
-  border-bottom: 3px double var(--ledger);
+  border-top: 2px solid var(--ledger);
 }
 
-/* A subtotal: a single rule above. */
+/* A subtotal: a light rule above. */
 @utility ledger-subtotal {
   border-top: 1px solid var(--ledger);
 }
@@ -266,4 +312,11 @@
   [data-slot="native-select"] {
     font-size: var(--text-base);
   }
+}
+
+/* Cards are flat sheets with a hairline edge, like tables. */
+[data-slot="card"] {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: none;
 }

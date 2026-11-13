@@ -1,12 +1,30 @@
 ---
-import { IconCheck, IconChevronRight } from "@tabler/icons-react"
+import {
+  IconCheck,
+  IconChevronRight,
+  IconEqual,
+  IconTrendingDown,
+  IconTrendingUp,
+} from "@tabler/icons-react"
 import { cn } from "cn"
 
+import Flow from "@/components/flow.astro"
+import { PaceChart } from "@/components/pace-chart"
 import PageHeader from "@/components/page-header.astro"
 import Section from "@/components/section.astro"
 import Statement from "@/components/statement.astro"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { ACCOUNT_GROUPS } from "@/lib/accounts"
+import { categoryFill } from "@/lib/categories"
 import AppLayout from "@/layouts/app.astro"
 import { formatShortDate, today } from "@/lib/dates"
 import { formatMoney } from "@/lib/money"
@@ -20,6 +38,7 @@ import { listRecurring } from "@/server/recurring"
 import {
   firstTransactionMonth,
   shiftMonth,
+  spendingPace,
   spendingTable,
 } from "@/server/spending"
 
@@ -75,13 +94,8 @@ const month = spendingTable(db, {
   to: thisMonth,
   on,
 })
-const day = Number(on.slice(8, 10))
-const daysInMonth = new Date(
-  Number(on.slice(0, 4)),
-  Number(on.slice(5, 7)),
-  0
-).getDate()
-const pace = day / daysInMonth
+const paceData = spendingPace(db, on)
+const pace = paceData.day / paceData.days
 const spentSoFar = (byMonth: Record<string, number>) => byMonth[thisMonth] ?? 0
 const ranked = [...month.categories].sort(
   (a, b) =>
@@ -93,6 +107,7 @@ const rest = ranked.slice(6)
 const rows = [
   ...top.map((c) => ({
     name: c.name,
+    fill: categoryFill(c.color),
     href: `/transactions?category=${c.id}&month=${thisMonth}&recurring=exclude`,
     spent: spentSoFar(c.byMonth),
     average: c.average,
@@ -101,6 +116,7 @@ const rows = [
     ? [
         {
           name: "Everything else",
+          fill: "bg-muted-foreground",
           href: `/transactions?categories=${rest.map((c) => c.id).join(",")}&month=${thisMonth}&recurring=exclude`,
           spent: rest.reduce((sum, c) => sum + spentSoFar(c.byMonth), 0),
           average: rest.reduce((sum, c) => sum + c.average, 0),
@@ -126,11 +142,9 @@ const STANDING_LABEL = {
   ahead: "Spending faster than usual",
   ok: "",
 }
-const BAR_TONE = {
-  over: "bg-destructive",
-  ahead: "bg-chart-1",
-  ok: "bg-chart-2",
-}
+// How far under or over a usual month's pace today's total is.
+const usualByNow = paceData.usual[paceData.day - 1]
+const gap = usualByNow === undefined ? null : usualByNow - totalSpent
 const paceNote = (spent: number, average: number) =>
   average <= 0
     ? ""
@@ -154,8 +168,12 @@ const ACTION: Record<Reminder["kind"], string> = {
 
 <AppLayout title="Dashboard">
   <PageHeader
-    title="Dashboard"
-    description="What comes in during a typical month, what goes out, and what's left. Spending is your average, so this isn't this month's cash."
+    title={started ? formatMonth(thisMonth, "long") : "Dashboard"}
+    description={
+      started
+        ? `Day ${paceData.day} of ${paceData.days}. This month's spending so far, then what a typical month looks like.`
+        : "What you've spent this month, what a typical month looks like, and what you hold."
+    }
   />
   {nextStep && (
     <Section
@@ -206,316 +224,407 @@ const ACTION: Record<Reminder["kind"], string> = {
     </Section>
   )}
   {started && (
-    <>
-      <Statement
-        label="A typical month"
-        terms={[
-          {
-            label: "Income",
-            value: formatMoney(data.income),
-            detail: "take-home, bonuses averaged in",
-            href: "/income",
-          },
-          {
-            op: "−",
-            label: "Recurring",
-            value: formatMoney(data.recurring),
-            detail: [
-              `${payments} payment${payments === 1 ? "" : "s"}`,
-              share(data.recurring) && `${share(data.recurring)} of income`,
-            ]
-              .filter(Boolean)
-              .join(", "),
-            tone: 3,
-            href: "/recurring",
-          },
-          {
-            op: "−",
-            label: "Spending",
-            value: formatMoney(data.spend),
-            detail: data.spendMonths
-              ? [
-                  `average of ${data.spendMonths} month${data.spendMonths === 1 ? "" : "s"}`,
-                  share(data.spend) && `${share(data.spend)} of income`,
-                ]
-                  .filter(Boolean)
-                  .join(", ")
-              : "no complete months yet",
-            tone: 2,
-            href: "/spending",
-          },
-          {
-            op: "=",
-            label: data.net < 0 ? "Short" : "Left over",
-            value: formatMoney(data.net),
-            // Until spending is imported, what's "left" is only income minus
-            // recurring, so say so rather than show a too-rosy share.
-            detail:
-              data.spendMonths === 0
-                ? "before spending, which isn't imported yet"
-                : share(data.net)
-                  ? `${share(data.net)} of income`
-                  : undefined,
-            tone: 1,
-          },
-        ]}
-        parts={[
-          { label: "Recurring", amount: data.recurring, tone: 3 },
-          { label: "Spending", amount: data.spend, tone: 2 },
-          { label: "Left over", amount: data.net, tone: 1 },
-        ]}
-      />
-      {data.reminders.length > 0 && (
-        <Section
-          title="Needs updating"
-          description="What to refresh so these numbers stay right."
-        >
-          <a
-            slot="actions"
-            href="/settings#reminders"
-            class={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Reminder settings
-          </a>
-          <ul class="flex flex-col divide-y rounded-xl border bg-card">
-            {data.reminders.slice(0, 3).map((reminder) => (
-              <li>
-                <a
-                  href={reminder.href}
-                  class="flex items-center justify-between gap-4 px-4 py-3 text-sm hover:bg-muted md:px-5"
-                >
-                  {reminder.message}
-                  <span class="shrink-0 font-medium text-primary">
-                    {ACTION[reminder.kind]}
-                  </span>
-                </a>
-              </li>
-            ))}
-            {data.reminders.length > 3 && (
-              <li>
-                <details class="group/more">
-                  <summary class="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted md:px-5 [&::-webkit-details-marker]:hidden">
-                    <IconChevronRight
-                      className="size-4 transition-transform group-open/more:rotate-90"
-                      aria-hidden="true"
-                    />
-                    <span class="group-open/more:hidden">
-                      Show {data.reminders.length - 3} more
-                    </span>
-                    <span class="hidden group-open/more:inline">
-                      Show fewer
-                    </span>
-                  </summary>
-                  <ul class="flex flex-col divide-y border-t">
-                    {data.reminders.slice(3).map((reminder) => (
-                      <li>
-                        <a
-                          href={reminder.href}
-                          class="flex items-center justify-between gap-4 px-4 py-3 text-sm hover:bg-muted md:px-5"
-                        >
-                          {reminder.message}
-                          <span class="shrink-0 font-medium text-primary">
-                            {ACTION[reminder.kind]}
-                          </span>
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              </li>
+    <div class="flex flex-col gap-4 md:gap-6">
+      <Card>
+        <CardContent className="flex flex-col gap-6">
+          <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+            <div class="flex flex-col gap-1">
+              <h2 class="text-base font-medium text-muted-foreground">
+                Spent so far
+              </h2>
+              <a
+                href={`/transactions?month=${thisMonth}&recurring=exclude`}
+                class="self-start font-heading text-6xl/none tabular-nums hover:underline md:text-7xl/none"
+              >
+                {whole(totalSpent)}
+              </a>
+              <p class="text-base text-muted-foreground">
+                {paceData.months > 0
+                  ? `of a usual ${whole(month.average)}, recurring payments left out`
+                  : "recurring payments left out"}
+              </p>
+            </div>
+            {gap !== null && (
+              <Badge
+                variant={gap < 0 ? "destructive" : "outline"}
+                className="gap-1.5 bg-card py-1"
+              >
+                {gap > 0 ? (
+                  <IconTrendingDown
+                    className="text-income"
+                    aria-hidden="true"
+                  />
+                ) : gap < 0 ? (
+                  <IconTrendingUp aria-hidden="true" />
+                ) : (
+                  <IconEqual aria-hidden="true" />
+                )}
+                {gap === 0
+                  ? "Right on your usual pace"
+                  : `${whole(Math.abs(gap))} ${gap > 0 ? "under" : "over"} your usual pace`}
+              </Badge>
             )}
-          </ul>
-        </Section>
-      )}
-      <div class="grid gap-10 xl:grid-cols-[3fr_2fr] xl:gap-12">
-        <div class="flex flex-col gap-10">
-          <Section
-            title="Spending this month"
-            description={`${formatMonth(thisMonth, "long")} so far against each category's monthly average. The tick marks an even pace for today.`}
-          >
+          </div>
+          <PaceChart
+            client:load
+            month={paceData.month}
+            day={paceData.day}
+            days={paceData.days}
+            spent={paceData.spent}
+            usual={paceData.usual}
+          />
+        </CardContent>
+      </Card>
+      <div class="grid items-start gap-4 md:gap-6 @4xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Where it's gone</CardTitle>
+            <CardDescription>
+              Each category so far against its monthly average. The tick marks
+              an even pace for today.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             {rows.length === 0 ? (
               <p class="text-sm text-muted-foreground">
                 Import transactions to compare this month with your averages.
               </p>
             ) : (
-              <div class="flex flex-col">
-                <div class="flex flex-col gap-2 pb-4">
-                  <p class="flex items-baseline justify-between gap-4">
-                    <span class="font-medium">
-                      All spending
-                      {standing(totalSpent, month.average) !== "ok" && (
-                        <span class="block text-sm font-normal text-muted-foreground">
-                          {STANDING_LABEL[standing(totalSpent, month.average)]}
+              <ul class="-my-3 flex flex-col divide-y">
+                {rows.map((row) => (
+                  <li>
+                    <a
+                      href={row.href}
+                      class="group grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-2.5 py-4 text-base"
+                    >
+                      <span>
+                        <span
+                          class:list={[
+                            "mr-2.5 inline-block size-2.5 rounded-full",
+                            row.fill,
+                          ]}
+                          aria-hidden="true"
+                        />
+                        <span class="font-medium group-hover:underline">
+                          {row.name}
                         </span>
-                      )}
-                    </span>
-                    <span class="tabular-nums">
-                      <span class="font-heading text-2xl">
-                        {whole(totalSpent)}
+                        {standing(row.spent, row.average) !== "ok" && (
+                          <Badge
+                            variant={
+                              standing(row.spent, row.average) === "over"
+                                ? "destructive"
+                                : "outline"
+                            }
+                            className="ml-2 align-middle"
+                            aria-hidden="true"
+                          >
+                            {STANDING_LABEL[standing(row.spent, row.average)]}
+                          </Badge>
+                        )}
                       </span>
-                      <span class="text-sm text-muted-foreground">
-                        {" "}
-                        of {whole(month.average)}
+                      <span class="tabular-nums" aria-hidden="true">
+                        <span
+                          class:list={[
+                            "font-medium",
+                            row.spent > row.average && "text-destructive",
+                          ]}
+                        >
+                          {whole(row.spent)}
+                        </span>
+                        <span class="text-sm text-muted-foreground">
+                          {" "}
+                          of {whole(row.average)}
+                        </span>
                       </span>
-                    </span>
-                  </p>
-                  <span
-                    class="relative h-3 rounded-full bg-muted"
-                    aria-hidden="true"
+                      <span class="sr-only">
+                        {`${whole(row.spent)} of a ${whole(row.average)} average${paceNote(row.spent, row.average)}`}
+                      </span>
+                      <span
+                        class="relative col-span-2 h-2 rounded-full bg-muted"
+                        aria-hidden="true"
+                      >
+                        <span
+                          class:list={[
+                            "absolute inset-y-0 left-0 rounded-full",
+                            row.fill,
+                          ]}
+                          style={{
+                            width: `${(fill(row.spent, row.average) * 100).toFixed(1)}%`,
+                          }}
+                        />
+                        <span
+                          class="absolute -inset-y-1 w-0.5 rounded-full bg-foreground/70"
+                          style={{ left: `${(pace * 100).toFixed(1)}%` }}
+                        />
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+        <div class="flex flex-col gap-4 md:gap-6">
+          {data.reminders.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Needs updating</CardTitle>
+                <CardDescription>
+                  What to refresh so these numbers stay right.
+                </CardDescription>
+                <CardAction>
+                  <a
+                    href="/settings#reminders"
+                    class={cn(
+                      buttonVariants({ variant: "outline", size: "sm" })
+                    )}
                   >
-                    <span
-                      class:list={[
-                        "absolute inset-y-0 left-0 rounded-full",
-                        BAR_TONE[standing(totalSpent, month.average)],
-                      ]}
-                      style={{
-                        width: `${(fill(totalSpent, month.average) * 100).toFixed(1)}%`,
-                      }}
-                    />
-                    <span
-                      class="absolute -inset-y-1 w-0.5 rounded-full bg-foreground/70"
-                      style={{ left: `${(pace * 100).toFixed(1)}%` }}
-                    />
-                  </span>
-                </div>
-                <ul class="flex flex-col border-t">
-                  {rows.map((row) => (
+                    Settings
+                  </a>
+                </CardAction>
+              </CardHeader>
+              <CardContent>
+                <ul class="-my-3 flex flex-col divide-y text-base">
+                  {data.reminders.slice(0, 3).map((reminder) => (
                     <li>
                       <a
-                        href={row.href}
-                        class="group grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-2 py-3"
+                        href={reminder.href}
+                        class="group flex items-center justify-between gap-4 py-3"
                       >
-                        <span>
-                          <span class="group-hover:underline">{row.name}</span>
+                        {reminder.message}
+                        <span class="flex shrink-0 items-center gap-0.5 text-sm font-medium group-hover:underline">
+                          {ACTION[reminder.kind]}
                           <IconChevronRight
-                            className="ml-0.5 inline size-4 align-[-2px] text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                          {standing(row.spent, row.average) !== "ok" && (
-                            <Badge
-                              variant={
-                                standing(row.spent, row.average) === "over"
-                                  ? "destructive"
-                                  : "outline"
-                              }
-                              className="ml-2 align-middle"
-                              aria-hidden="true"
-                            >
-                              {STANDING_LABEL[standing(row.spent, row.average)]}
-                            </Badge>
-                          )}
-                        </span>
-                        <span class="text-sm tabular-nums" aria-hidden="true">
-                          <span
-                            class:list={[
-                              "font-medium",
-                              row.spent > row.average && "text-destructive",
-                            ]}
-                          >
-                            {whole(row.spent)}
-                          </span>
-                          <span class="text-muted-foreground">
-                            {" "}
-                            of {whole(row.average)}
-                          </span>
-                        </span>
-                        <span class="sr-only">
-                          {`${whole(row.spent)} of a ${whole(row.average)} average${paceNote(row.spent, row.average)}`}
-                        </span>
-                        <span
-                          class="relative col-span-2 h-2 rounded-full bg-muted"
-                          aria-hidden="true"
-                        >
-                          <span
-                            class:list={[
-                              "absolute inset-y-0 left-0 rounded-full",
-                              BAR_TONE[standing(row.spent, row.average)],
-                            ]}
-                            style={{
-                              width: `${(fill(row.spent, row.average) * 100).toFixed(1)}%`,
-                            }}
-                          />
-                          <span
-                            class="absolute -inset-y-1 w-0.5 rounded-full bg-foreground/70"
-                            style={{ left: `${(pace * 100).toFixed(1)}%` }}
+                            className="size-4"
                             aria-hidden="true"
                           />
                         </span>
                       </a>
                     </li>
                   ))}
+                  {data.reminders.length > 3 && (
+                    <li>
+                      <details class="group/more">
+                        <summary class="flex cursor-pointer list-none items-center gap-2 py-3 text-sm font-medium text-muted-foreground [&::-webkit-details-marker]:hidden">
+                          <IconChevronRight
+                            className="size-4 transition-transform group-open/more:rotate-90"
+                            aria-hidden="true"
+                          />
+                          <span class="group-open/more:hidden">
+                            Show {data.reminders.length - 3} more
+                          </span>
+                          <span class="hidden group-open/more:inline">
+                            Show fewer
+                          </span>
+                        </summary>
+                        <ul class="flex flex-col divide-y border-t">
+                          {data.reminders.slice(3).map((reminder) => (
+                            <li>
+                              <a
+                                href={reminder.href}
+                                class="group flex items-center justify-between gap-4 py-3"
+                              >
+                                {reminder.message}
+                                <span class="flex shrink-0 items-center gap-0.5 text-sm font-medium group-hover:underline">
+                                  {ACTION[reminder.kind]}
+                                  <IconChevronRight
+                                    className="size-4"
+                                    aria-hidden="true"
+                                  />
+                                </span>
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    </li>
+                  )}
                 </ul>
-              </div>
-            )}
-          </Section>
+              </CardContent>
+            </Card>
+          )}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Coming up</CardTitle>
+              <CardDescription>
+                Paychecks and recurring charges in the next 14 days.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {data.comingUp.length === 0 ? (
+                <p class="text-sm text-muted-foreground">Nothing expected.</p>
+              ) : (
+                <ul class="-my-3 flex flex-col divide-y text-base">
+                  {data.comingUp.map((item) => (
+                    <li class="grid grid-cols-[3.5rem_1fr_auto] items-baseline gap-x-3 py-3">
+                      <span class="text-sm text-muted-foreground tabular-nums">
+                        {formatShortDate(item.date)}
+                      </span>
+                      <a
+                        href={
+                          item.kind === "deposit"
+                            ? `/income/deposits#month-${item.date.slice(0, 7)}`
+                            : "/recurring"
+                        }
+                        class="hover:underline"
+                      >
+                        {item.name}
+                      </a>
+                      <span
+                        class:list={[
+                          "whitespace-nowrap tabular-nums",
+                          item.amount > 0 && "font-medium text-income",
+                        ]}
+                      >
+                        {formatMoney(item.amount)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
         </div>
-        <div class="flex flex-col gap-10">
-          <Section
-            title="Coming up"
-            description="Paychecks and recurring charges in the next 14 days."
-          >
-            {data.comingUp.length === 0 ? (
-              <p class="text-sm text-muted-foreground">Nothing expected.</p>
-            ) : (
-              <ul class="flex flex-col divide-y border-y">
-                {data.comingUp.map((item) => (
-                  <li class="grid grid-cols-[3.5rem_1fr_auto] items-baseline gap-x-3 py-2.5 text-sm">
-                    <span class="text-muted-foreground tabular-nums">
-                      {formatShortDate(item.date)}
-                    </span>
-                    <a
-                      href={
-                        item.kind === "deposit"
-                          ? `/income/deposits#month-${item.date.slice(0, 7)}`
-                          : "/recurring"
-                      }
-                      class="hover:underline"
-                    >
-                      {item.name}
-                    </a>
-                    <span
-                      class:list={[
-                        "whitespace-nowrap tabular-nums",
-                        item.amount > 0 && "font-medium text-primary",
-                      ]}
-                    >
-                      {formatMoney(item.amount)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
-          <Section
-            title="Net worth"
-            description="Each open account's latest balance."
-          >
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Where a typical month goes</CardTitle>
+          <CardDescription>
+            Income is take-home pay with bonuses averaged in, and spending is
+            your average, so this isn't this month's cash.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-base">
+          {data.income > 0 ? (
+            <Flow
+              label="A typical month"
+              income={data.income}
+              incomeHref="/income"
+              sources={data.incomeSources.map((source) => ({
+                label: source.name,
+                detail: source.memberName,
+                amount: source.monthly,
+              }))}
+              parts={[
+                {
+                  label: "Recurring",
+                  amount: data.recurring,
+                  detail: [
+                    `${payments} payment${payments === 1 ? "" : "s"}`,
+                    share(data.recurring) &&
+                      `${share(data.recurring)} of income`,
+                  ]
+                    .filter(Boolean)
+                    .join(", "),
+                  share: share(data.recurring) ?? undefined,
+                  href: "/recurring",
+                  tone: "recurring",
+                },
+                {
+                  label: "Spending",
+                  amount: data.spend,
+                  detail: [
+                    `average of ${data.spendMonths} month${data.spendMonths === 1 ? "" : "s"}`,
+                    share(data.spend) && `${share(data.spend)} of income`,
+                  ]
+                    .filter(Boolean)
+                    .join(", "),
+                  share: share(data.spend) ?? undefined,
+                  href: "/spending",
+                  tone: "spending",
+                },
+                {
+                  label: "Left over",
+                  amount: data.net,
+                  // Until spending is imported, what's "left" is only income
+                  // minus recurring, so say so rather than show a too-rosy share.
+                  detail:
+                    data.spendMonths === 0
+                      ? "before spending, which isn't imported yet"
+                      : (share(data.net) ?? undefined) &&
+                        `${share(data.net)} of income`,
+                  share:
+                    data.spendMonths === 0
+                      ? undefined
+                      : (share(data.net) ?? undefined),
+                  tone: "left-over",
+                },
+              ]}
+            />
+          ) : (
+            <Statement
+              label="A typical month"
+              terms={[
+                {
+                  label: "Income",
+                  value: formatMoney(data.income),
+                  href: "/income",
+                },
+                {
+                  op: "−",
+                  label: "Recurring",
+                  value: formatMoney(data.recurring),
+                  href: "/recurring",
+                },
+                {
+                  op: "−",
+                  label: "Spending",
+                  value: formatMoney(data.spend),
+                  href: "/spending",
+                },
+                { op: "=", label: "Short", value: formatMoney(data.net) },
+              ]}
+            />
+          )}
+          {data.income > 0 && data.net < 0 && (
+            <p class="pt-4 font-medium text-destructive">
+              Short {formatMoney(-data.net)} a month: recurring payments and
+              spending come to more than income.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Net worth</CardTitle>
+          <CardDescription>Each open account's latest balance.</CardDescription>
+          <CardAction>
             <a
-              slot="actions"
               href="/accounts"
               class={cn(buttonVariants({ variant: "outline", size: "sm" }))}
             >
               Accounts
             </a>
-            <Statement
-              label="Net worth"
-              terms={[
-                { label: "Assets", value: formatMoney(data.netWorth.assets) },
-                {
-                  op: "−",
-                  label: "Debts",
-                  value: formatMoney(data.netWorth.debts),
-                },
-                {
-                  op: "=",
-                  label: "Net worth",
-                  value: formatMoney(data.netWorth.net),
-                },
-              ]}
-            />
-          </Section>
-        </div>
-      </div>
-    </>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="text-base">
+          <Statement
+            label="Net worth"
+            terms={[
+              { label: "Assets", value: formatMoney(data.netWorth.assets) },
+              {
+                op: "−",
+                label: "Debts",
+                value: formatMoney(data.netWorth.debts),
+              },
+              {
+                op: "=",
+                label: "Net worth",
+                value: formatMoney(data.netWorth.net),
+              },
+            ]}
+            legend
+            parts={ACCOUNT_GROUPS.map((group, index) => ({
+              label: group.title,
+              amount: group.kinds.reduce(
+                (sum, kind) => sum + (data.netWorth.byKind[kind] ?? 0),
+                0
+              ),
+              tone: (index + 1) as 1 | 2 | 3,
+            }))}
+          />
+        </CardContent>
+      </Card>
+    </div>
   )}
 </AppLayout>

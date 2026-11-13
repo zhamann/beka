@@ -1,6 +1,6 @@
 import { z } from "astro/zod"
 
-import { CATEGORY_TYPES } from "@/lib/categories"
+import { CATEGORY_COLORS, CATEGORY_TYPES } from "@/lib/categories"
 import { toCents } from "@/lib/money"
 import { FREQUENCIES } from "@/lib/recurring"
 import { transaction } from "@/server/database"
@@ -32,6 +32,7 @@ const category = z.object({
   name: z.string().trim().min(1, "Enter a name.").max(60),
   type: z.enum(CATEGORY_TYPES),
   hidden: z.boolean(),
+  color: z.number().int().min(1).max(CATEGORY_COLORS.length).optional(),
 })
 
 const ids = z
@@ -54,13 +55,12 @@ const transactionInput = z.object({
 
 export const transactions = {
   createCategory: op({
-    description:
-      "Add a spending category with its type (spending, income, or excluded).",
+    description: `Add a spending category with its type (spending, income, or excluded) and, optionally, the color it wears in spending lists (${CATEGORY_COLORS.map(({ color, name }) => `${color} ${name.toLowerCase()}`).join(", ")}). Left out, it takes the least-used color.`,
     input: category,
     handler: (input) => run((db) => createCategory(db, input)),
   }),
   updateCategory: op({
-    description: "Rename, retype, or hide a category.",
+    description: `Rename, retype, hide, or recolor a category (colors: ${CATEGORY_COLORS.map(({ color, name }) => `${color} ${name.toLowerCase()}`).join(", ")}). Leaving color out keeps the one it has.`,
     input: category.extend({ id }),
     handler: ({ id, ...input }) => run((db) => updateCategory(db, id, input)),
   }),

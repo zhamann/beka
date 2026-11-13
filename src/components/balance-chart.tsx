@@ -10,7 +10,7 @@ import { formatDate, formatShortDate } from "@/lib/dates"
 import { formatMoney } from "@/lib/money"
 
 const config = {
-  amount: { label: "Balance", color: "var(--chart-bar)" },
+  amount: { label: "Balance", color: "var(--chart-1)" },
 } satisfies ChartConfig
 
 const tick = { fill: "var(--muted-foreground)", fontSize: 14 }

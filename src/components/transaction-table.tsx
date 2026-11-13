@@ -194,7 +194,7 @@ export function TransactionTable({
                     "text-right tabular-nums",
                     t.amount > 0 &&
                       t.categoryType === "income" &&
-                      "font-medium text-primary",
+                      "font-medium text-income",
                     // Transfers and card payments don't count anywhere.
                     t.categoryType === "excluded" && "text-muted-foreground"
                   )}
