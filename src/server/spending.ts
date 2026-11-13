@@ -220,3 +220,44 @@ export function spendingPace(db: DatabaseSync, on = today()): SpendingPace {
     months: past.length,
   }
 }
+
+export interface DashboardMonth {
+  /** The month shown, as `YYYY-MM`. */
+  month: string
+  /** The day it's measured to: today for this month, else its last day. */
+  on: string
+  /** Whether it's the month in progress. */
+  current: boolean
+  /** The months to step to, or null at either end of the data. */
+  previous: string | null
+  next: string | null
+}
+
+/**
+ * The month the Dashboard shows from its `month` parameter: any month from
+ * the first with transactions through this one. A missing, malformed, or
+ * out-of-range month means this one.
+ */
+export function dashboardMonth(
+  db: DatabaseSync,
+  param: string | null | undefined,
+  on = today()
+): DashboardMonth {
+  const thisMonth = on.slice(0, 7)
+  const first = firstTransactionMonth(db) ?? thisMonth
+  const earliest = first < thisMonth ? first : thisMonth
+  const month =
+    param && /^\d{4}-(0[1-9]|1[0-2])$/.test(param) && param >= earliest
+      ? param < thisMonth
+        ? param
+        : thisMonth
+      : thisMonth
+  const current = month === thisMonth
+  return {
+    month,
+    on: current ? on : `${month}-${String(daysIn(month)).padStart(2, "0")}`,
+    current,
+    previous: month > earliest ? shiftMonth(month, -1) : null,
+    next: current ? null : shiftMonth(month, 1),
+  }
+}

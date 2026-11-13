@@ -8,6 +8,7 @@ import { importTransactions, type ImportRow } from "./imports"
 import { createRecurring } from "./recurring"
 import {
   averageSpend,
+  dashboardMonth,
   monthsBetween,
   spendingPace,
   spendingTable,
@@ -187,5 +188,77 @@ describe("spending", () => {
       usual: [],
       months: 0,
     })
+  })
+
+  it("builds up a past month whole, against the months before it", () => {
+    importTransactions(
+      db,
+      [
+        row("2026-09-02", -30, "Groceries"),
+        row("2026-10-01", -20, "Dining & Drinks"),
+        row("2026-10-31", -40, "Shopping"),
+      ],
+      "",
+      "2026-11-05"
+    )
+    const pace = spendingPace(
+      db,
+      dashboardMonth(db, "2026-10", "2026-11-05").on
+    )
+    expect(pace).toMatchObject({ month: "2026-10", day: 31, days: 31 })
+    expect(pace.spent.at(-1)).toBe(60_00)
+    // Only September came before October.
+    expect(pace.months).toBe(1)
+    expect(pace.usual.at(-1)).toBe(30_00)
+  })
+})
+
+describe("dashboard month", () => {
+  beforeEach(() => {
+    importTransactions(
+      db,
+      [row("2026-09-14", -30, "Groceries")],
+      "",
+      "2026-11-05"
+    )
+  })
+
+  it("is this month without a month asked for", () => {
+    expect(dashboardMonth(db, null, "2026-11-05")).toEqual({
+      month: "2026-11",
+      on: "2026-11-05",
+      current: true,
+      previous: "2026-10",
+      next: null,
+    })
+  })
+
+  it("measures a past month to its last day", () => {
+    expect(dashboardMonth(db, "2026-10", "2026-11-05")).toEqual({
+      month: "2026-10",
+      on: "2026-10-31",
+      current: false,
+      previous: "2026-09",
+      next: "2026-11",
+    })
+  })
+
+  it("stops at the first month with transactions", () => {
+    expect(dashboardMonth(db, "2026-09", "2026-11-05")).toMatchObject({
+      on: "2026-09-30",
+      previous: null,
+      next: "2026-10",
+    })
+  })
+
+  it("falls back to this month for months it can't show", () => {
+    for (const param of ["2026-08", "2026-12", "2026-13", "October", ""])
+      expect(dashboardMonth(db, param, "2026-11-05").month).toBe("2026-11")
+  })
+
+  it("has nowhere to go before any transactions", () => {
+    expect(
+      dashboardMonth(openDatabase(":memory:"), null, "2026-11-05")
+    ).toMatchObject({ previous: null, next: null })
   })
 })
