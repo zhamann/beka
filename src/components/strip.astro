@@ -1,9 +1,8 @@
 ---
 /**
  * A whole split into parts, each part's width its share, in the order its
- * statement reads. The part that matters most takes the darkest tone
- * (`chart-1`), so it reads strongest wherever it falls. With
- * `legend`, each part's name and share sit under the strip.
+ * statement reads, each in its own `chart-N` color. With `legend`, each
+ * part's name and share sit under the strip.
  */
 import { type Part, TONES } from "@/lib/parts"
 
@@ -32,10 +31,7 @@ const share = (amount: number) => {
     >
       {shown.map((part) => (
         <span
-          class:list={[
-            "h-full basis-0 shadow-[inset_0_0_0_1px_var(--border)]",
-            TONES[part.tone],
-          ]}
+          class:list={["h-full basis-0", part.fill ?? TONES[part.tone]]}
           style={{ flexGrow: part.amount }}
         />
       ))}
@@ -46,8 +42,8 @@ const share = (amount: number) => {
           <li class="flex items-center gap-2">
             <span
               class:list={[
-                "size-2.5 shrink-0 rounded-xs shadow-[inset_0_0_0_1px_var(--border)]",
-                TONES[part.tone],
+                "size-2.5 shrink-0 rounded-xs",
+                part.fill ?? TONES[part.tone],
               ]}
             />
             {part.label}

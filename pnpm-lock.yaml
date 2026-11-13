@@ -209,10 +209,10 @@ importers:
       '@eslint/js':
         specifier: ^10
         version: 10.0.1(eslint@10.14.0(jiti@2.7.0))
-      '@fontsource-variable/public-sans':
+      '@fontsource-variable/figtree':
         specifier: ^5.3.0
         version: 5.3.0
-      '@fontsource/spectral':
+      '@fontsource-variable/gabarito':
         specifier: ^5.3.0
         version: 5.3.0
       '@tailwindcss/vite':
@@ -915,11 +915,11 @@ packages:
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
 
-  '@fontsource-variable/public-sans@5.3.0':
-    resolution: {integrity: sha512-AVfkmAt50BMXWpOO21FAntiJFKGX6xTc2dSL8dxtDteONe9IuRXJWGbs0EbG955vAMCq23ENeuopuW87cGWDSQ==}
+  '@fontsource-variable/figtree@5.3.0':
+    resolution: {integrity: sha512-VRVodD7OiG7apQwE8/2fMjaqpY/a0qRJqL5HtYj8CKIVps+9amaFcdfKmDIf7iqYQx6iPLlArVXAfKeIZmVcNQ==}
 
-  '@fontsource/spectral@5.3.0':
-    resolution: {integrity: sha512-2TL5WWGOZj4SIsBmPFEzKeA60tXXd1Qp1OqaaVEWkJL8IfSGLk6YmiusmC441iFkdJDIuFelu1r8lhCmQUU3mw==}
+  '@fontsource-variable/gabarito@5.3.0':
+    resolution: {integrity: sha512-p7ROuY70ufLI5/hVvdgo4iJo17Dz2OfQXgdkaeS0U/B2wMqNIPt+/2WWWaAzrUYvcrNquL7farT2MY/vVo2ENw==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -4467,9 +4467,9 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@fontsource-variable/public-sans@5.3.0': {}
+  '@fontsource-variable/figtree@5.3.0': {}
 
-  '@fontsource/spectral@5.3.0': {}
+  '@fontsource-variable/gabarito@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

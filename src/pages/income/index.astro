@@ -224,7 +224,7 @@ const incoming = (key: keyof Totals) =>
                         </p>
                       </div>
                       <div class="flex items-center gap-3">
-                        <span class="font-heading text-2xl/none text-primary tabular-nums">
+                        <span class="font-heading text-2xl/none text-income tabular-nums">
                           {formatMoney(income.amount)}
                         </span>
                         <EditOtherIncomeButton
@@ -296,7 +296,7 @@ const incoming = (key: keyof Totals) =>
                         column.key !== shownColumn && "hidden @xl:table-cell",
                         row.key === "deposited" && "font-medium",
                         row.minus && "text-muted-foreground",
-                        incoming(row.key) && "text-primary"
+                        incoming(row.key) && "text-income"
                       )}
                     >
                       {column.totals[row.key] === 0 && row.key !== "deposited"

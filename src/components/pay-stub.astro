@@ -40,7 +40,7 @@ const taxes = paycheck
           <span class="text-sm font-medium text-muted-foreground">
             Each paycheck deposits
           </span>
-          <span class="font-heading text-4xl/none text-primary tabular-nums">
+          <span class="font-heading text-4xl/none text-income tabular-nums">
             {formatMoney(paycheck.net)}
           </span>
           <span class="text-sm text-muted-foreground">
@@ -50,10 +50,11 @@ const taxes = paycheck
         <Strip
           legend
           parts={[
-            // The same order as the breakdown beside it, top to bottom.
-            { label: "Before taxes", amount: sum(paycheck.pretax), tone: 3 },
+            // The same order as the breakdown beside it, top to bottom, with
+            // what's deposited in teal, the closest to money coming in.
+            { label: "Before taxes", amount: sum(paycheck.pretax), tone: 4 },
             { label: "Taxes", amount: taxes, tone: 2 },
-            { label: "After taxes", amount: sum(paycheck.posttax), tone: 4 },
+            { label: "After taxes", amount: sum(paycheck.posttax), tone: 3 },
             { label: "Deposited", amount: paycheck.net, tone: 1 },
           ]}
         />

@@ -9,6 +9,7 @@ import { openDatabase } from "./database"
 import { checkDeposits } from "./deposit-matching"
 import { needsUpdating } from "./freshness"
 import { createMember } from "./household"
+import { dashboard } from "./dashboard"
 import { createOtherIncome, incomeYear } from "./income"
 import { importTransactions, type ImportRow } from "./imports"
 import { updateFreshnessRules, DEFAULT_RULES } from "./settings"
@@ -141,6 +142,33 @@ describe("deposit checks", () => {
     expect(byDate["2026-10-30"]).toEqual({ status: "missing" })
     expect(byDate["2026-01-30"]).toEqual({ status: "unknown" })
     expect(byDate["2026-11-30"]).toEqual({ status: "upcoming" })
+  })
+})
+
+describe("income sources", () => {
+  it("lists each source's monthly share of income, biggest first", () => {
+    const robin = createMember(db, { name: "Robin", birthYear: null })
+    const sky = createMember(db, { name: "Sky", birthYear: null })
+    const income = (memberId: number, name: string, amount: number) =>
+      createOtherIncome(db, {
+        memberId,
+        name,
+        amount,
+        schedule: { kind: "monthly", day: 1 },
+        businessDayRule: "none",
+        taxable: false,
+        accountId,
+      })
+    income(robin.id, "Pension", 1_250_00)
+    income(sky.id, "Rental income", 900_00)
+    income(robin.id, "Annuity", 2_000_00)
+    const data = dashboard(db, "2026-11-06")
+    expect(data.incomeSources).toEqual([
+      { name: "Annuity", memberName: "Robin", monthly: 2_000_00 },
+      { name: "Pension", memberName: "Robin", monthly: 1_250_00 },
+      { name: "Rental income", memberName: "Sky", monthly: 900_00 },
+    ])
+    expect(data.income).toBe(4_150_00)
   })
 })
 

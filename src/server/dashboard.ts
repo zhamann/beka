@@ -16,9 +16,19 @@ export interface ComingUp {
   amount: number
 }
 
+export interface IncomeSource {
+  /** The employer, or the other income's name. */
+  name: string
+  memberName: string
+  /** Cents a month: the source's deposits for the year ÷ 12. */
+  monthly: number
+}
+
 export interface Dashboard {
   /** Cents a month: household deposits for the year ÷ 12. */
   income: number
+  /** Where income comes from, biggest first. Rounding can leave their sum a few cents off `income`. */
+  incomeSources: IncomeSource[]
   /** Cents a month of active recurring payments. */
   recurring: number
   /** Cents a month of non-recurring spending, averaged. */
@@ -43,6 +53,32 @@ export function dashboard(
   const recurring = recurringMonthly(db, on)
   const { average: spend, months: spendMonths } = averageSpend(db, on)
   const within = (date: string) => date >= on && daysBetween(on, date) <= days
+
+  const sources = new Map<string, IncomeSource & { year: number }>()
+  for (const deposit of incomeNow.deposits) {
+    const key =
+      deposit.source.kind === "job"
+        ? `job-${deposit.source.jobId}`
+        : `other-${deposit.source.incomeId}`
+    if (!sources.has(key))
+      sources.set(key, {
+        name:
+          deposit.source.kind === "job"
+            ? deposit.source.employer
+            : deposit.source.name,
+        memberName: deposit.memberName,
+        monthly: 0,
+        year: 0,
+      })
+    sources.get(key)!.year += deposit.amount
+  }
+  const incomeSources = [...sources.values()]
+    .map(({ year: total, ...source }) => ({
+      ...source,
+      monthly: Math.round(total / 12),
+    }))
+    .filter((source) => source.monthly > 0)
+    .sort((a, b) => b.monthly - a.monthly || a.name.localeCompare(b.name))
 
   // Deposits can roll into next year near December.
   const deposits = [
@@ -73,6 +109,7 @@ export function dashboard(
 
   return {
     income,
+    incomeSources,
     recurring,
     spend,
     spendMonths,

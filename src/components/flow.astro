@@ -1,0 +1,268 @@
+---
+/**
+ * Where a month's income goes, drawn as a flow: each source runs into Income,
+ * which splits into what it pays for and what's left. Every band is as thick
+ * as its share of income. Phones drop the sources and keep the split.
+ *
+ * When the parts come to more than income, the bands that reach them are as
+ * thick as income allows and the bars show what they'd need.
+ */
+import { IconChevronRight } from "@tabler/icons-react"
+
+import { formatMoney } from "@/lib/money"
+
+interface Source {
+  label: string
+  detail?: string
+  /** Cents a month. */
+  amount: number
+}
+
+interface Part {
+  label: string
+  /** Cents a month; parts at or under zero are left out. */
+  amount: number
+  detail?: string
+  /** Its share of income, shown by the label where the detail doesn't fit. */
+  share?: string
+  href?: string
+  tone: keyof typeof TONES
+}
+
+interface Props {
+  label: string
+  /** Cents a month. */
+  income: number
+  incomeHref?: string
+  sources: Source[]
+  parts: Part[]
+}
+
+const TONES = {
+  recurring: { bar: "bg-recurring", band: "fill-recurring" },
+  spending: { bar: "bg-spending", band: "fill-spending" },
+  "left-over": { bar: "bg-left-over", band: "fill-left-over" },
+}
+
+const { label, income, incomeHref, sources, parts } = Astro.props
+const shownParts = parts.filter((part) => part.amount > 0)
+// The biggest sources get their own band; the rest share one.
+const top = sources.slice(0, 4)
+const rest = sources.slice(4)
+const shownSources = [
+  ...top,
+  ...(rest.length
+    ? [
+        {
+          label: `${rest.length} more`,
+          amount: rest.reduce((sum, source) => sum + source.amount, 0),
+        },
+      ]
+    : []),
+]
+
+/** The height, in pixels, of the whole month's income (or its parts, if more). */
+const FULL = 224
+const GAP = 12
+const total = Math.max(
+  income,
+  shownParts.reduce((sum, part) => sum + part.amount, 0)
+)
+const scale = FULL / total
+const incomeHeight = income * scale
+
+/** Stacks nodes in slots tall enough for their labels, each node centered in its slot. */
+const stack = (heights: number[], minSlot: number) => {
+  let top = 0
+  const nodes = heights.map((height) => {
+    const slot = Math.max(height, minSlot)
+    const node = { slot, top: top + (slot - height) / 2, height }
+    top += slot + GAP
+    return node
+  })
+  return { nodes, height: Math.max(top - GAP, 0) }
+}
+const sourceTotal = shownSources.reduce((sum, source) => sum + source.amount, 0)
+const left = stack(
+  shownSources.map((source) => (source.amount / sourceTotal) * incomeHeight),
+  44
+)
+const right = stack(
+  shownParts.map((part) => part.amount * scale),
+  72
+)
+const height = Math.max(left.height, right.height, incomeHeight)
+const leftOffset = (height - left.height) / 2
+const rightOffset = (height - right.height) / 2
+const incomeTop = (height - incomeHeight) / 2
+/**
+ * Room above the diagram for Income's label. Given room, the label sits over
+ * Income's bar; on phones it sits over the whole diagram, clear of the bands.
+ */
+const LABEL = 56
+const headroom = Math.max(LABEL - incomeTop, 0)
+
+/** A band from `from` on the left edge to `to` on the right, `size` thick. */
+const band = (from: number, to: number, size: number) =>
+  `M0,${from.toFixed(1)} C50,${from.toFixed(1)} 50,${to.toFixed(1)} 100,${to.toFixed(1)} L100,${(to + size).toFixed(1)} C50,${(to + size).toFixed(1)} 50,${(from + size).toFixed(1)} 0,${(from + size).toFixed(1)} Z`
+
+let into = incomeTop
+const sourceBands = left.nodes.map((node) => {
+  const path = band(leftOffset + node.top, into, node.height)
+  into += node.height
+  return path
+})
+let out = incomeTop
+let unspent = incomeHeight
+const partBands = right.nodes.map((node, index) => {
+  const size = Math.min(node.height, unspent)
+  const path = band(out, rightOffset + node.top, size)
+  out += size
+  unspent -= size
+  return { path, tone: TONES[shownParts[index].tone] }
+})
+---
+
+<section aria-label={label} class="flex flex-col">
+  <div
+    class="grid grid-cols-[0.5rem_minmax(1.5rem,1fr)_0.5rem_max-content] gap-x-1 pt-14 @3xl:grid-cols-[max-content_0.5rem_minmax(2rem,1fr)_0.5rem_minmax(2rem,1fr)_0.5rem_max-content] @3xl:pt-(--headroom)"
+    style={{ "--headroom": `${headroom}px` }}
+  >
+    <ul
+      class="hidden flex-col justify-center pr-2 text-right @3xl:flex"
+      style={{ height: `${height}px`, gap: `${GAP}px` }}
+      aria-label="Income sources"
+    >
+      {shownSources.map((source, index) => (
+        <li
+          class="flex flex-col justify-center"
+          style={{ height: `${left.nodes[index].slot}px` }}
+        >
+          <span class="font-medium">{source.label}</span>
+          <span class="text-sm text-muted-foreground tabular-nums">
+            {source.detail && `${source.detail}, `}
+            {formatMoney(source.amount)}
+          </span>
+        </li>
+      ))}
+    </ul>
+    <div
+      class="relative hidden @3xl:block"
+      style={{ height: `${height}px` }}
+      aria-hidden="true"
+    >
+      {left.nodes.map((node) => (
+        <span
+          class="absolute inset-x-0 rounded-full bg-income"
+          style={{
+            top: `${leftOffset + node.top}px`,
+            height: `${Math.max(node.height, 2)}px`,
+          }}
+        />
+      ))}
+    </div>
+    <svg
+      viewBox={`0 0 100 ${height}`}
+      preserveAspectRatio="none"
+      class="hidden w-full @3xl:block"
+      style={{ height: `${height}px` }}
+      aria-hidden="true"
+    >
+      {sourceBands.map((path) => (
+        <path d={path} class="fill-income opacity-25" />
+      ))}
+    </svg>
+    <div class="relative" style={{ height: `${height}px` }}>
+      <span
+        class="absolute inset-x-0 rounded-full bg-income"
+        style={{ top: `${incomeTop}px`, height: `${incomeHeight}px` }}
+        aria-hidden="true"
+      />
+      <a
+        href={incomeHref}
+        class="group absolute top-0 left-0 flex -translate-y-full flex-col pb-2 whitespace-nowrap outline-none focus-visible:rounded-md focus-visible:ring-3 focus-visible:ring-ring @3xl:top-(--income-top) @3xl:left-1/2 @3xl:-translate-x-1/2 @3xl:items-center"
+        style={{ "--income-top": `${incomeTop}px` }}
+      >
+        <span class="flex items-center gap-1 text-sm font-medium text-muted-foreground">
+          <span class="group-hover:underline">Income</span>
+          {incomeHref && (
+            <IconChevronRight className="size-4" aria-hidden="true" />
+          )}
+        </span>
+        <span class="font-heading text-xl/tight tabular-nums">
+          {formatMoney(income)}
+        </span>
+      </a>
+    </div>
+    <svg
+      viewBox={`0 0 100 ${height}`}
+      preserveAspectRatio="none"
+      class="w-full"
+      style={{ height: `${height}px` }}
+      aria-hidden="true"
+    >
+      {partBands.map(({ path, tone }) => (
+        <path d={path} class:list={[tone.band, "opacity-30"]} />
+      ))}
+    </svg>
+    <div class="relative" style={{ height: `${height}px` }} aria-hidden="true">
+      {right.nodes.map((node, index) => (
+        <span
+          class:list={[
+            "absolute inset-x-0 rounded-full",
+            TONES[shownParts[index].tone].bar,
+          ]}
+          style={{
+            top: `${rightOffset + node.top}px`,
+            height: `${Math.max(node.height, 2)}px`,
+          }}
+        />
+      ))}
+    </div>
+    <ul
+      class="flex flex-col justify-center pl-2"
+      style={{ height: `${height}px`, gap: `${GAP}px` }}
+      aria-label="Where it goes"
+    >
+      {shownParts.map((part, index) => {
+        const Tag = part.href ? "a" : "div"
+        return (
+          <li
+            class="flex flex-col justify-center"
+            style={{ height: `${right.nodes[index].slot}px` }}
+          >
+            <Tag
+              href={part.href}
+              class="group flex flex-col outline-none focus-visible:rounded-md focus-visible:ring-3 focus-visible:ring-ring"
+            >
+              <span class="flex items-center gap-1 text-sm font-medium text-muted-foreground">
+                <span class="group-hover:underline">{part.label}</span>
+                {part.share && (
+                  <span class="font-normal @lg:hidden">{part.share}</span>
+                )}
+                {part.href && (
+                  <IconChevronRight className="size-4" aria-hidden="true" />
+                )}
+              </span>
+              <span
+                class:list={[
+                  "font-heading tabular-nums",
+                  part.tone === "left-over"
+                    ? "text-2xl/tight @3xl:text-3xl/tight"
+                    : "text-xl/tight",
+                ]}
+              >
+                {formatMoney(part.amount)}
+              </span>
+              {part.detail && (
+                <span class="hidden text-sm text-muted-foreground @lg:block">
+                  {part.detail}
+                </span>
+              )}
+            </Tag>
+          </li>
+        )
+      })}
+    </ul>
+  </div>
+</section>

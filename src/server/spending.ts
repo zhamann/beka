@@ -25,6 +25,8 @@ export interface SpendingTable {
   categories: {
     id: number
     name: string
+    /** Which `category-N` color it wears, 1 to 8. */
+    color: number
     /** Cents spent each month, by `YYYY-MM`. Refunds count against it. */
     byMonth: Record<string, number>
     /** Cents a month across `months`. */
@@ -56,7 +58,7 @@ export function spendingTable(
   const rows = shown.length
     ? (db
         .prepare(
-          `SELECT c.id, c.name, substr(t.date, 1, 7) AS month, -sum(t.amount) AS spent
+          `SELECT c.id, c.name, c.color, substr(t.date, 1, 7) AS month, -sum(t.amount) AS spent
            FROM transactions t JOIN categories c ON c.id = t.category_id
            WHERE c.type = 'spending' AND t.date >= ? AND t.date < ?
            ${includeRecurring ? "" : "AND t.recurring_id IS NULL"}
@@ -65,6 +67,7 @@ export function spendingTable(
         .all(`${shown[0]}-01`, `${shiftMonth(shown.at(-1)!, 1)}-01`) as {
         id: number
         name: string
+        color: number
         month: string
         spent: number
       }[])
@@ -79,6 +82,7 @@ export function spendingTable(
       byCategory.set(row.id, {
         id: row.id,
         name: row.name,
+        color: row.color,
         byMonth: {},
         average: 0,
       })
@@ -124,4 +128,95 @@ export function averageSpend(
     on,
   })
   return { average: table.average, months: table.months.length }
+}
+
+export interface SpendingPace {
+  /** The month in progress, as `YYYY-MM`. */
+  month: string
+  /** Today's day of the month. */
+  day: number
+  /** How many days the month has. */
+  days: number
+  /** Cents spent by the end of each day so far, one entry a day up to today. */
+  spent: number[]
+  /**
+   * Cents usually spent by the end of each day of a month, one entry a day:
+   * the average of `months` complete months. Empty when there are none.
+   */
+  usual: number[]
+  /** How many complete months `usual` averages. */
+  months: number
+}
+
+const daysIn = (month: string) => {
+  const [y, m] = month.split("-").map(Number)
+  return new Date(y, m, 0).getDate()
+}
+
+/**
+ * How this month's spending is building up, day by day, against a usual
+ * month: the same spending and the same months as the Dashboard's Spend, so
+ * `usual` ends on that average.
+ */
+export function spendingPace(db: DatabaseSync, on = today()): SpendingPace {
+  const month = on.slice(0, 7)
+  const day = Number(on.slice(8, 10))
+  const days = daysIn(month)
+  const first = firstTransactionMonth(db)
+  const lastComplete = shiftMonth(month, -1)
+  const start = shiftMonth(lastComplete, -11)
+  const complete =
+    first && first <= lastComplete
+      ? monthsBetween(first > start ? first : start, lastComplete)
+      : []
+  const byDate = new Map(
+    (
+      db
+        .prepare(
+          `SELECT t.date, -sum(t.amount) AS spent
+           FROM transactions t JOIN categories c ON c.id = t.category_id
+           WHERE c.type = 'spending' AND t.recurring_id IS NULL
+             AND t.date >= ? AND t.date <= ?
+           GROUP BY t.date`
+        )
+        .all(`${complete[0] ?? month}-01`, on) as {
+        date: string
+        spent: number
+      }[]
+    ).map((row) => [row.date, row.spent])
+  )
+  /** Cents spent in `of` by the end of each of its first `through` days. */
+  const running = (of: string, through: number) => {
+    let total = 0
+    return Array.from({ length: through }, (_, index) => {
+      total += byDate.get(`${of}-${String(index + 1).padStart(2, "0")}`) ?? 0
+      return total
+    })
+  }
+  const past = complete.map((m) => running(m, daysIn(m)))
+  // A shorter or longer month counts whole by this month's last day.
+  const usual = past.length
+    ? Array.from({ length: days }, (_, index) =>
+        Math.round(
+          past.reduce(
+            (sum, m) =>
+              sum +
+              m[
+                index === days - 1
+                  ? m.length - 1
+                  : Math.min(index, m.length - 1)
+              ],
+            0
+          ) / past.length
+        )
+      )
+    : []
+  return {
+    month,
+    day,
+    days,
+    spent: running(month, day),
+    usual,
+    months: past.length,
+  }
 }

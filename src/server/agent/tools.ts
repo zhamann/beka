@@ -55,6 +55,8 @@ const readTools: Tool[] = [
       definitions: {
         income:
           "Household take-home pay plus other income, this year's total ÷ 12.",
+        incomeSources:
+          "Each job's and other income's share of income, monthly, biggest first.",
         recurring: "Active recurring payments, as monthly equivalents.",
         spend:
           "Spending-category transactions that aren't recurring, averaged over the last 12 complete months.",

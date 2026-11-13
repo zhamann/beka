@@ -12,9 +12,10 @@ import { SelectField, TextField } from "@/components/form-fields"
 import { ConfirmDelete } from "@/components/confirm-delete"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Field, FieldLabel } from "@/components/ui/field"
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Switch } from "@/components/ui/switch"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   Table,
   TableBody,
@@ -24,9 +25,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  CATEGORY_COLORS,
   CATEGORY_TYPE_DESCRIPTIONS,
   CATEGORY_TYPE_LABELS,
   CATEGORY_TYPES,
+  categoryFill,
   type CategoryType,
 } from "@/lib/categories"
 import { checked, text } from "@/lib/form"
@@ -43,6 +46,8 @@ function CategoryDialog({
 }) {
   const id = useId()
   const [hidden, setHidden] = useState(category?.hidden ?? false)
+  // A new category gets the least-used color unless one is picked.
+  const [color, setColor] = useState<number | null>(category?.color ?? null)
   return (
     <FormDialog
       compact
@@ -54,6 +59,7 @@ function CategoryDialog({
           name: category?.builtin ? category.name : text(form, "name"),
           type: text(form, "type") as CategoryType,
           hidden: checked(form, "hidden") || hidden,
+          ...(color === null ? {} : { color }),
         }
         return category
           ? actions.updateCategory({ id: category.id, ...input })
@@ -83,6 +89,37 @@ function CategoryDialog({
           label: `${CATEGORY_TYPE_LABELS[type]}: ${CATEGORY_TYPE_DESCRIPTIONS[type]}`,
         }))}
       />
+      <Field>
+        <FieldLabel id={`${id}-color`}>Color</FieldLabel>
+        <ToggleGroup
+          aria-labelledby={`${id}-color`}
+          value={color === null ? [] : [String(color)]}
+          onValueChange={(value: string[]) => {
+            if (value[0]) setColor(Number(value[0]))
+          }}
+          spacing={1}
+          className="flex-wrap"
+        >
+          {CATEGORY_COLORS.map((option) => (
+            <ToggleGroupItem
+              key={option.color}
+              value={String(option.color)}
+              aria-label={option.name}
+              className="size-10 rounded-full p-0 data-[pressed]:ring-2 data-[pressed]:ring-ring"
+            >
+              <span
+                className={`size-5 rounded-full ${option.fill}`}
+                aria-hidden="true"
+              />
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <FieldDescription>
+          {category
+            ? "How it's marked in spending lists."
+            : "How it's marked in spending lists. Left unpicked, it gets the color fewest categories use."}
+        </FieldDescription>
+      </Field>
       <Field orientation="horizontal">
         <Switch
           id={id}
@@ -167,6 +204,12 @@ function CategoryRow({
     <TableRow>
       <TableCell className="whitespace-normal">
         <span className="flex flex-wrap items-center gap-2">
+          {category.type === "spending" && (
+            <span
+              className={`size-2.5 shrink-0 rounded-full ${categoryFill(category.color)}`}
+              aria-hidden="true"
+            />
+          )}
           {category.name}
           {category.hidden && <Badge variant="outline">Hidden</Badge>}
         </span>
