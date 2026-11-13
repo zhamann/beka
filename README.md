@@ -2,6 +2,8 @@
 
 A self-hosted app that shows your household's current financial picture: what each paycheck deposits, what you spend by category each month, your recurring payments, accounts and net worth, loans ranked by interest rate, and which credit card earns the most where.
 
+![Beka, your household's money as it stands today: the Dashboard's spending so far this month against a usual month on a MacBook Air, and where a typical month goes, from income to recurring payments, spending, and what's left over, on an iPhone](docs/screenshots/beka.png)
+
 Beka shows where things stand today; it doesn't plan or forecast. Its data is available to an AI agent so you can ask questions about your finances.
 
 The name is the beka of Exodus 38:26, half a shekel paid by "every one that went to be numbered": money for counting a household.
