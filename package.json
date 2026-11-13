@@ -2,7 +2,7 @@
   "name": "beka",
   "description": "A self-hosted app that shows a household's current financial picture: paychecks, spending, recurring payments, accounts, loans, and cards.",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "engines": {
     "node": ">=26"
