@@ -74,7 +74,8 @@
  *   (`CATEGORY_COLORS` names them). The order keeps neighbors apart for
  *   color-blind readers, so add to the end rather than reorder.
  * - `chart-1` to `chart-4` are the parts of any other whole, drawn by `Strip`
- *   in ink, darkest first, so they never borrow a meaning from the hues.
+ *   (teal, indigo, amber, pink). Any two of them stay apart for color-blind
+ *   readers except teal and pink, so those two never touch in a strip.
  * - `chart-bar` is monthly spending on the Spending page.
  *
  * Dark mode has its own steps of the same hues, picked for the dark sheet.
@@ -115,10 +116,10 @@
     --category-7: #6250d6;
     --category-8: #e34948;
     --chart-bar: var(--spending);
-    --chart-1: #16181c;
-    --chart-2: #5b616b;
-    --chart-3: #9ba1aa;
-    --chart-4: #cfd3d8;
+    --chart-1: #1baf7a;
+    --chart-2: #6250d6;
+    --chart-3: #eda100;
+    --chart-4: #e87ba4;
     --chart-5: var(--income);
     --radius: 0.75rem;
     --sidebar: #ffffff;
@@ -164,10 +165,10 @@
     --category-6: #008300;
     --category-7: #9085e9;
     --category-8: #e66767;
-    --chart-1: #eceef1;
-    --chart-2: #a3a8b1;
-    --chart-3: #6f7682;
-    --chart-4: #474c55;
+    --chart-1: #199e70;
+    --chart-2: #9085e9;
+    --chart-3: #c98500;
+    --chart-4: #d55181;
     --sidebar: #16181b;
     --sidebar-foreground: #c5c9d0;
     --sidebar-primary: #eceef1;

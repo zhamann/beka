@@ -27,6 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import AppLayout from "@/layouts/app.astro"
+import { categoryFill } from "@/lib/categories"
 import { formatDate, formatShortDate } from "@/lib/dates"
 import { formatMoney } from "@/lib/money"
 import { FREQUENCY_LABELS } from "@/lib/recurring"
@@ -61,6 +62,15 @@ for (const p of active) {
   totals.set(name, (totals.get(name) ?? 0) + p.monthly)
 }
 const ranked = [...totals].sort((a, b) => b[1] - a[1])
+const colorOf = new Map(categories.map((c) => [c.name, c.color]))
+const usedColors = new Set<number>()
+const fillFor = (label: string) => {
+  if (label === "Everything else") return "bg-muted-foreground"
+  const color = colorOf.get(label)
+  if (color === undefined || usedColors.has(color)) return undefined
+  usedColors.add(color)
+  return categoryFill(color)
+}
 // Up to three categories get their own part; slivers under 3% fold in too.
 const shown = ranked
   .slice(0, 3)
@@ -75,6 +85,8 @@ const byCategory = [
   label,
   amount,
   tone: (index + 1) as 1 | 2 | 3 | 4,
+  // A category wears its own color, unless one shown before it already does.
+  fill: fillFor(label),
 }))
 const accounts = listAccounts(db)
 ---
