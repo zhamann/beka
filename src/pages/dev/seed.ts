@@ -3,7 +3,7 @@ import type { APIRoute } from "astro"
 import { loadSeed, type Seed } from "@/server/seed"
 
 /**
- * Loads a seed file into the database, for `pnpm seed`. Only the dev server
+ * Loads a seed file into the database, for `bun seed`. Only the dev server
  * has it; production builds answer 404.
  */
 export const POST: APIRoute = async ({ request, url }) => {

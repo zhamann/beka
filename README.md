@@ -39,18 +39,18 @@ Beka copies its database into `$DATA_DIR/backups` once a day and keeps 30 days o
 
 ## Development
 
-Requires Node 26 and pnpm.
+Requires Node 26 and Bun.
 
 ```sh
-pnpm install
-pnpm dev
+bun install
+bun dev
 ```
 
-To fill a dev database with a sample household (two people, a year of transactions, income, accounts, loans, and cards), run this while `pnpm dev` is running:
+To fill a dev database with a sample household (two people, a year of transactions, income, accounts, loans, and cards), run this while `bun dev` is running:
 
 ```sh
-pnpm seed sample/seed.json            # into an empty database
-pnpm seed sample/seed.json --replace  # start over
+bun seed sample/seed.json            # into an empty database
+bun seed sample/seed.json --replace  # start over
 ```
 
 A seed is JSON that names people, accounts, and categories instead of numbering them; see `src/server/seed.ts` for its shape. Put seeds with real data in `local/`, which git ignores.
@@ -95,11 +95,11 @@ Beka then sees the address people open it at, so restores and sign-in work and t
 
 ### Without Docker
 
-Requires Node 26 and pnpm.
+Requires Node 26 and Bun.
 
 ```sh
-pnpm install --frozen-lockfile
-pnpm build
+bun install --frozen-lockfile
+bun run build
 HOST=0.0.0.0 DATA_DIR=/var/lib/beka node ./dist/server/entry.mjs
 ```
 
