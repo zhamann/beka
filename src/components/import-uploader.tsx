@@ -177,7 +177,12 @@ export function ImportUploader({
   }
 
   async function pick(picked: File | undefined) {
-    if (picked) load(picked.name, await picked.text())
+    if (!picked) return
+    try {
+      load(picked.name, await picked.text())
+    } catch {
+      setError("That file couldn't be read. Try choosing it again.")
+    }
   }
 
   /** Adds an account the file names, then points its rows at it. */
@@ -346,7 +351,7 @@ export function ImportUploader({
         tabIndex={-1}
         aria-hidden
         onChange={(event) => {
-          pick(event.target.files?.[0])
+          void pick(event.target.files?.[0])
           event.target.value = ""
         }}
       />
