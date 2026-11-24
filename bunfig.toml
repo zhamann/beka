@@ -7,3 +7,57 @@ env = false
 minimumReleaseAge = 86_400
 # A package can import only what it declares.
 linker = "isolated"
+
+[lint]
+maxWarnings = 0
+# The type-aware rules come with the next change.
+typeAware = false
+# shadcn CLI output stays as generated.
+ignorePatterns = ["/.astro/", "/dist/", "/src/components/ui/", "/src/hooks/use-mobile.ts"]
+
+[lint.categories]
+correctness = "error"
+
+[lint.rules]
+# The rest of ESLint's, typescript-eslint's, and react-hooks' recommended rules.
+no-case-declarations = "error"
+no-empty = "error"
+no-octal = "error"
+no-prototype-builtins = "error"
+no-regex-spaces = "error"
+no-unexpected-multiline = "error"
+no-useless-assignment = "error"
+no-var = "error"
+prefer-const = "error"
+prefer-rest-params = "error"
+prefer-spread = "error"
+preserve-caught-error = "error"
+"@typescript-eslint/ban-ts-comment" = "error"
+"@typescript-eslint/no-array-constructor" = "error"
+"@typescript-eslint/no-empty-object-type" = "error"
+"@typescript-eslint/no-explicit-any" = "error"
+"@typescript-eslint/no-require-imports" = "error"
+"@typescript-eslint/no-unnecessary-type-constraint" = "error"
+"@typescript-eslint/no-unsafe-function-type" = "error"
+"react-hooks/config" = "error"
+"react-hooks/gating" = "error"
+"react-hooks/rules-of-hooks" = "error"
+"react-hooks/unsupported-syntax" = "error"
+
+# These are looser in Bun than in ESLint by default.
+no-constant-binary-expression = ["error", { allowLiteralToggle = false }]
+no-empty-pattern = ["error", { allowObjectPatternsAsParameters = false }]
+no-fallthrough = ["error", { commentPattern = "falls?\\s?through" }]
+no-irregular-whitespace = ["error", { skipComments = false, skipJSXText = false, skipRegExps = false, skipTemplates = false }]
+no-loss-of-precision = ["error", { ignoreDecimals = false }]
+"@typescript-eslint/no-namespace" = ["error", { allowDeclarations = false }]
+"@typescript-eslint/no-unused-expressions" = ["error", { allowShortCircuit = false, allowTernary = false }]
+"@typescript-eslint/no-unused-vars" = ["error", { varsIgnorePattern = "(?!)", argsIgnorePattern = "(?!)", caughtErrorsIgnorePattern = "(?!)", destructuredArrayIgnorePattern = "(?!)", ignoreRestSiblings = false }]
+
+# Correctness rules the code doesn't pass yet.
+"jsx-a11y/click-events-have-key-events" = "off"
+"jsx-a11y/control-has-associated-label" = "off"
+"jsx-a11y/label-has-associated-control" = "off"
+"jsx-a11y/no-noninteractive-element-interactions" = "off"
+"jsx-a11y/prefer-tag-over-role" = "off"
+"vitest/require-to-throw-message" = "off"

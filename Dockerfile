@@ -3,6 +3,7 @@
 FROM node:26-slim AS base
 WORKDIR /app
 COPY package.json bun.lock bunfig.toml ./
+COPY tools/lint/package.json tools/lint/
 # Install the Bun version pinned by package.json's `packageManager`.
 RUN npm install --global --allow-scripts=bun "$(node -p 'require("./package.json").packageManager')"
 
@@ -12,6 +13,7 @@ RUN npm install --global --allow-scripts=bun "$(node -p 'require("./package.json
 FROM --platform=$BUILDPLATFORM node:26-slim AS build
 WORKDIR /app
 COPY package.json bun.lock bunfig.toml ./
+COPY tools/lint/package.json tools/lint/
 RUN npm install --global --allow-scripts=bun "$(node -p 'require("./package.json").packageManager')"
 RUN bun install --frozen-lockfile
 COPY . .
