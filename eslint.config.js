@@ -7,7 +7,12 @@ import { defineConfig, globalIgnores } from "eslint/config"
 
 export default defineConfig([
   // shadcn CLI output stays as generated.
-  globalIgnores(["dist", ".astro", "src/components/ui", "src/hooks/use-mobile.ts"]),
+  globalIgnores([
+    "dist",
+    ".astro",
+    "src/components/ui",
+    "src/hooks/use-mobile.ts",
+  ]),
   {
     files: ["**/*.{ts,tsx}"],
     extends: [

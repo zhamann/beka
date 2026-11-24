@@ -131,9 +131,7 @@
       }
     }
   ],
-  "rewardCategories": [
-    "Costco"
-  ],
+  "rewardCategories": ["Costco"],
   "cards": [
     {
       "name": "Everyday Visa",
@@ -240,10 +238,7 @@
       },
       "schedule": {
         "kind": "semimonthly",
-        "days": [
-          15,
-          31
-        ]
+        "days": [15, 31]
       },
       "w4": {
         "filingStatus": "married_jointly",
