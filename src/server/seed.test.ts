@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { listAccounts } from "./accounts"
 import { closeDatabase, getDatabase } from "./database"
@@ -11,11 +11,11 @@ import { listTransactions } from "./transactions"
 import { loadSeed, type Seed } from "./seed"
 
 let dir: string
-beforeAll(() => {
+beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "beka-seed-"))
   process.env.DATA_DIR = dir
 })
-afterAll(() => {
+afterEach(() => {
   closeDatabase()
   rmSync(dir, { recursive: true, force: true })
 })
@@ -36,6 +36,7 @@ describe("the sample household", () => {
   })
 
   it("only loads into an empty database, unless replacing", () => {
+    loadSeed(sample(), { on: "2026-11-06" })
     expect(() => loadSeed(sample(), { on: "2026-11-06" })).toThrow(
       "already has data"
     )

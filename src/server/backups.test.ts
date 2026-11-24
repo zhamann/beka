@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { DatabaseSync } from "node:sqlite"
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { listActivity } from "./activity"
 import {
@@ -16,11 +16,11 @@ import { closeDatabase, getDatabase, SCHEMA_VERSION } from "./database"
 import { createMember, listMembers } from "./household"
 
 let dir: string
-beforeAll(() => {
+beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "beka-backups-"))
   process.env.DATA_DIR = dir
 })
-afterAll(() => {
+afterEach(() => {
   closeDatabase()
   rmSync(dir, { recursive: true, force: true })
 })
@@ -54,6 +54,7 @@ describe("backups", () => {
   })
 
   it("refuses files that aren't Beka backups", () => {
+    createMember(getDatabase(), { name: "Robin", birthYear: null })
     expect(() =>
       restoreBackup({
         bytes: new TextEncoder().encode("not a database"),
@@ -65,10 +66,11 @@ describe("backups", () => {
     expect(() => restoreBackup({ name: "../other.db" })).toThrow(
       "no longer exists"
     )
-    expect(listMembers(getDatabase())).toHaveLength(2)
+    expect(listMembers(getDatabase())).toHaveLength(1)
   })
 
   it("leaves the data alone when a backup is incomplete", () => {
+    createMember(getDatabase(), { name: "Robin", birthYear: null })
     const partial = join(dir, "partial.db")
     const db = new DatabaseSync(partial)
     db.exec(`CREATE TABLE members (id INTEGER PRIMARY KEY, name TEXT);
@@ -78,7 +80,7 @@ describe("backups", () => {
     expect(() =>
       restoreBackup({ bytes: readFileSync(partial), fileName: "partial.db" })
     ).toThrow("damaged or incomplete")
-    expect(listMembers(getDatabase())).toHaveLength(2)
+    expect(listMembers(getDatabase())).toHaveLength(1)
     expect(listBackups()).toHaveLength(before)
   })
 })

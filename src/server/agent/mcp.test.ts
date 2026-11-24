@@ -2,10 +2,10 @@ import { existsSync, mkdtempSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import type { DatabaseSync } from "node:sqlite"
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { listActivity } from "../activity"
-import { getDatabase } from "../database"
+import { closeDatabase, getDatabase } from "../database"
 import { createAgentKey, revokeAgentKey, verifyAgentKey } from "./keys"
 import { handleMessage } from "./mcp"
 import { QUERY_ROW_LIMIT, queryDatabase } from "./query"
@@ -15,13 +15,13 @@ let dir: string
 let db: DatabaseSync
 
 // The agent's tools run the app's own actions, which use the app's database.
-beforeAll(() => {
+beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "beka-mcp-"))
   process.env.DATA_DIR = dir
   db = getDatabase()
 })
-afterAll(() => {
-  db.close()
+afterEach(() => {
+  closeDatabase()
   rmSync(dir, { recursive: true, force: true })
 })
 
@@ -41,6 +41,25 @@ const call = async (name: string, args: unknown = {}) => {
   }
   return { value, isError: reply.result.isError ?? false, text }
 }
+
+/** Adds an account called Checking, for transactions to belong to. */
+const addChecking = () =>
+  call("create_account", {
+    name: "Checking",
+    kind: "checking",
+    subtype: "",
+    institution: "",
+    last4: "",
+    ownerId: null,
+    notes: "",
+    balance: { amount: 100, asOf: "2026-11-01" },
+  })
+
+const walmart = (category: string) =>
+  `date,merchant,description,amount,category,account,notes\n2026-11-02,Walmart,WALMART,-42.10,${category},Checking,`
+
+const importWalmart = async (category: string) =>
+  (await call("import_transactions_csv", { csv: walmart(category) })).value
 
 describe("MCP", () => {
   it("initializes with instructions and a supported protocol version", async () => {
@@ -105,33 +124,25 @@ describe("MCP", () => {
   })
 
   it("imports a CSV, stopping on any problem", async () => {
-    await call("create_account", {
-      name: "Checking",
-      kind: "checking",
-      subtype: "",
-      institution: "",
-      last4: "",
-      ownerId: null,
-      notes: "",
-      balance: { amount: 100, asOf: "2026-11-01" },
-    })
-    const csv = (category: string) =>
-      `date,merchant,description,amount,category,account,notes\n2026-11-02,Walmart,WALMART,-42.10,${category},Checking,`
-    expect(
-      (await call("import_transactions_csv", { csv: csv("Nope") })).value
-    ).toMatchObject({
+    await addChecking()
+    expect(await importWalmart("Nope")).toMatchObject({
       saved: false,
       unknownCategories: ["Nope"],
     })
-    expect(
-      (await call("import_transactions_csv", { csv: csv("Groceries") })).value
-    ).toMatchObject({ saved: true, added: 1 })
-    expect(
-      (await call("import_transactions_csv", { csv: csv("Groceries") })).value
-    ).toMatchObject({ saved: true, added: 0, skipped: 1 })
+    expect(await importWalmart("Groceries")).toMatchObject({
+      saved: true,
+      added: 1,
+    })
+    expect(await importWalmart("Groceries")).toMatchObject({
+      saved: true,
+      added: 0,
+      skipped: 1,
+    })
   })
 
   it("answers read-only queries and refuses writes", async () => {
+    await addChecking()
+    await importWalmart("Groceries")
     expect(
       (
         await call("query_database", {
@@ -196,6 +207,8 @@ describe("MCP", () => {
   })
 
   it("gives an overview with reminders and definitions", async () => {
+    await addChecking()
+    await importWalmart("Groceries")
     const { value } = await call("get_overview")
     expect(value).toMatchObject({
       amountsAre: "integer cents",
