@@ -15,6 +15,17 @@ import { reloadWith, takeFlash } from "@/lib/reload"
 
 type Action = (input: unknown) => Promise<{ error?: { message: string } }>
 
+async function runUndo({ action, input }: { action: string; input: unknown }) {
+  const call = (actions as unknown as Record<string, Action>)[action]
+  try {
+    const { error } = await call(input)
+    if (error) toast.error(error.message)
+    else reloadWith("Undone")
+  } catch {
+    toast.error("That couldn't be undone. Check your connection.")
+  }
+}
+
 /** Shows the message a change left before the page reloaded, with its Undo. */
 function Flash() {
   useEffect(() => {
@@ -25,14 +36,7 @@ function Flash() {
       duration: undo ? 10_000 : undefined,
       action: undo && {
         label: "Undo",
-        onClick: async () => {
-          const call = (actions as unknown as Record<string, Action>)[
-            undo.action
-          ]
-          const { error } = await call(undo.input)
-          if (error) toast.error(error.message)
-          else reloadWith("Undone")
-        },
+        onClick: () => void runUndo(undo),
       },
     })
   }, [])
