@@ -1,6 +1,7 @@
 /** A form field as trimmed text. */
 export function text(form: FormData, name: string): string {
-  return String(form.get(name) ?? "").trim()
+  const value = form.get(name)
+  return typeof value === "string" ? value.trim() : ""
 }
 
 /** A form field as a number, or null when it's blank. Invalid numbers become NaN for the server to reject. */

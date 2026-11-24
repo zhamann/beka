@@ -52,7 +52,10 @@ export function BalanceChart({
           content={
             <ChartTooltipContent
               labelFormatter={(_, payload) =>
-                formatDate(String(payload?.[0]?.payload?.asOf ?? ""))
+                formatDate(
+                  (payload?.[0]?.payload as { asOf?: string } | undefined)
+                    ?.asOf ?? ""
+                )
               }
               formatter={(value) => (
                 <span className="font-medium tabular-nums">

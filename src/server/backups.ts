@@ -47,7 +47,7 @@ export function listBackups(): Backup[] {
     .map((name) => {
       const [, date, suffix] = name.match(BACKUP_NAME)!
       const stat = statSync(join(backupDir(), name))
-      const kind = suffix?.startsWith("-manual")
+      const kind: Backup["kind"] = suffix?.startsWith("-manual")
         ? "manual"
         : suffix?.startsWith("-before")
           ? "before-restore"
@@ -55,7 +55,7 @@ export function listBackups(): Backup[] {
       return {
         name,
         date,
-        kind: kind as Backup["kind"],
+        kind,
         bytes: stat.size,
         createdAt: stat.mtime.toISOString(),
       }

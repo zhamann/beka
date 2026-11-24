@@ -123,7 +123,9 @@ export function PaceChart({
               <ChartTooltipContent
                 indicator="line"
                 labelFormatter={(_, payload) => {
-                  const d = Number(payload?.[0]?.payload?.day ?? 0)
+                  const d =
+                    (payload?.[0]?.payload as { day?: number } | undefined)
+                      ?.day ?? 0
                   return d === 0 ? `${name} 1, start of day` : `${name} ${d}`
                 }}
                 formatter={(value, key) => (

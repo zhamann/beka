@@ -32,6 +32,8 @@ jobs:
           node-version-file: .node-version
       - run: bun ci
       - run: bun run check:lockfile
+      # Type-aware rules read the types Astro generates.
+      - run: bun run astro sync
       - run: bun run lint
       - run: bun run format:check
       - run: bun run typecheck

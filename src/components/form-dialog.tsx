@@ -188,7 +188,7 @@ export function FormDialog({
             : all[0]?.message
         )
       } else if (isInputError(error)) {
-        setFieldErrors(error.fields as FieldErrors)
+        setFieldErrors(error.fields)
         // Top-level problems show beside their fields. Problems inside lists,
         // like a card's bonus rows, are marked on the control named for them.
         const nested = error.issues

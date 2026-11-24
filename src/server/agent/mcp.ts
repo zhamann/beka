@@ -56,7 +56,7 @@ export async function handleMessage(
   if (request.id === undefined) return null
   switch (request.method) {
     case "initialize": {
-      const asked = String(request.params?.protocolVersion ?? "")
+      const asked = text(request.params?.protocolVersion)
       return result(request.id, {
         protocolVersion: PROTOCOL_VERSIONS.includes(asked)
           ? asked
@@ -82,7 +82,7 @@ export async function handleMessage(
         })),
       })
     case "tools/call": {
-      const name = String(request.params?.name ?? "")
+      const name = text(request.params?.name)
       return result(
         request.id,
         await callTool(db, name, request.params?.arguments)
@@ -91,4 +91,9 @@ export async function handleMessage(
     default:
       return failure(request.id, -32601, `Method not found: ${request.method}`)
   }
+}
+
+/** A parameter a client sent, or nothing when it isn't text. */
+function text(value: unknown): string {
+  return typeof value === "string" ? value : ""
 }

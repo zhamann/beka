@@ -21,7 +21,10 @@ afterEach(() => {
 })
 
 const sample = (): Seed => ({
-  ...JSON.parse(readFileSync("sample/seed.json", "utf8")),
+  ...(JSON.parse(readFileSync("sample/seed.json", "utf8")) as Omit<
+    Seed,
+    "transactions"
+  >),
   transactions: readFileSync("sample/transactions.csv", "utf8"),
 })
 

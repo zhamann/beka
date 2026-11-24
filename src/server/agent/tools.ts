@@ -25,7 +25,7 @@ export interface Tool {
   input: z.ZodType
   /** Read-only tools don't change anything. */
   readOnly: boolean
-  run: (input: never, db: DatabaseSync) => unknown | Promise<unknown>
+  run: (input: never, db: DatabaseSync) => unknown
 }
 
 const DATABASE_NOTES = `Conventions:
@@ -287,7 +287,7 @@ export const tools: Tool[] = [
       description: `${operation.description} Money inputs are dollars and rates are percents (9.24 for 9.24%); results use integer cents.`,
       input: operation.input,
       readOnly: false,
-      run: (input: never) => operation.handler(input as never),
+      run: (input: never) => operation.handler(input),
     })),
 ]
 

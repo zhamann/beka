@@ -10,8 +10,7 @@ linker = "isolated"
 
 [lint]
 maxWarnings = 0
-# The type-aware rules come with the next change.
-typeAware = false
+typeAware = true
 # shadcn CLI output stays as generated.
 ignorePatterns = ["/.astro/", "/dist/", "/src/components/ui/", "/src/hooks/use-mobile.ts"]
 

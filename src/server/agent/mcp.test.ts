@@ -221,7 +221,7 @@ describe("MCP", () => {
 })
 
 describe("agent keys", () => {
-  it("accepts only live keys", async () => {
+  it("accepts only live keys", () => {
     const { key, agentKey } = createAgentKey(db, "Claude")
     expect(key).toMatch(/^beka_/)
     expect(verifyAgentKey(db, key)).toBe(true)

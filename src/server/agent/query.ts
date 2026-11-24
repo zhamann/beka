@@ -120,7 +120,11 @@ export function queryDatabase(
       clearTimeout(timer)
       if (failure) return reject(failure)
       try {
-        const reply = JSON.parse(output)
+        const reply = JSON.parse(output) as {
+          rows: unknown[]
+          truncated: boolean
+          error?: string
+        }
         if (reply.error) reject(new BekaError("invalid", reply.error))
         else resolve(reply)
       } catch {

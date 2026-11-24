@@ -27,7 +27,7 @@ function show(key: string, value: unknown): string {
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value))
     return formatDate(value)
   if (typeof value === "object") return JSON.stringify(value)
-  return String(value)
+  return `${value as string | number | bigint}`
 }
 
 /**
