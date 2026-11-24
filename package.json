@@ -17,6 +17,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,astro}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,astro}\"",
     "typecheck": "astro check",
+    "check:lockfile": "bun tools/check-lockfile.mjs",
     "test": "vitest run",
     "seed": "node scripts/seed.mjs"
   },
@@ -58,7 +59,11 @@
     "vitest": "^5.1.1"
   },
   "license": "AGPL-3.0-only",
-  "packageManager": "pnpm@12.22.0",
+  "packageManager": "bun@1.4.5",
+  "trustedDependencies": [
+    "esbuild",
+    "sharp"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zhamann/beka.git"

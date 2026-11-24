@@ -1,5 +1,5 @@
-// Loads a seed file into a running dev server: `pnpm dev`, then
-// `pnpm seed sample/seed.json` (add --replace to start over).
+// Loads a seed file into a running dev server: `bun dev`, then
+// `bun seed sample/seed.json` (add --replace to start over).
 // A seed's "transactions" may name a CSV file next to it.
 import { existsSync, readFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
@@ -9,7 +9,7 @@ const file = args.find((arg) => !arg.startsWith("--"))
 const replace = args.includes("--replace")
 const url = args.find((arg) => arg.startsWith("--url="))?.slice(6) ?? "http://localhost:4321"
 if (!file) {
-  console.error("Usage: pnpm seed <seed.json> [--replace] [--url=http://localhost:4321]")
+  console.error("Usage: bun seed <seed.json> [--replace] [--url=http://localhost:4321]")
   process.exit(1)
 }
 

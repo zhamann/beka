@@ -8,17 +8,17 @@ The app is built for any household that self-hosts it, so every optional detail 
 
 - Astro 7 with server rendering (`@astrojs/node`, standalone) and React 19 islands for interactive UI.
 - shadcn/ui, `base-luma` style (Base UI primitives), Tabler icons, Tailwind CSS 4.
-- Node 26 (see `.node-version`), pnpm.
+- Node 26 (see `.node-version`) runs the app; Bun (see `packageManager` in `package.json`) installs packages and runs scripts.
 
 ## Commands
 
-- `pnpm dev`: start the dev server.
-- `pnpm build` / `pnpm start`: build and run the production server.
-- `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, `pnpm test`: the checks CI runs.
+- `bun dev`: start the dev server.
+- `bun run build` / `bun start`: build and run the production server.
+- `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run test`: the checks CI runs.
 
 ## UI conventions
 
-- Build UI from shadcn components. Add them with `pnpm dlx shadcn@latest add <name>`.
+- Build UI from shadcn components. Add them with `bunx shadcn@latest add <name>`.
 - Never edit files in `src/components/ui/` or `src/hooks/use-mobile.ts`; they must stay updatable through the CLI, so lint and Prettier skip them.
 - App components compose shadcn components. Their own classes are limited to layout, spacing, and text size; no hand-built controls, menus, dialogs, or one-off colors.
 - To style a link as a button, use `cn(buttonVariants({ ... }))`. `buttonVariants` alone doesn't resolve conflicting classes, so variants like `outline` lose their border.
@@ -78,4 +78,4 @@ The app is built for any household that self-hosts it, so every optional detail 
 - PR titles and commit messages follow Conventional Commits (`feat:`, `fix:`, `chore:`, `build:`, `docs:`, `test:`, `refactor:`).
 - PRs are squash-merged once CI passes.
 - Each PR carries its own tests and README updates.
-- Never commit real financial data. Personal seed files go in `local/`, which git ignores; `sample/` holds the made-up household for development and screenshots (`pnpm seed sample/seed.json` against `pnpm dev`). Don't add Playwright as a dependency.
+- Never commit real financial data. Personal seed files go in `local/`, which git ignores; `sample/` holds the made-up household for development and screenshots (`bun seed sample/seed.json` against `bun dev`). Don't add Playwright as a dependency.
