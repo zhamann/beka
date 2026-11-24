@@ -64,14 +64,16 @@ function toJob(db: DatabaseSync, row: JobRow): Job {
     memberId: row.member_id,
     memberName: row.memberName,
     employer: row.employer,
-    pay: JSON.parse(row.pay),
-    schedule: JSON.parse(row.schedule),
+    pay: JSON.parse(row.pay) as Job["pay"],
+    schedule: JSON.parse(row.schedule) as Job["schedule"],
     businessDayRule: row.business_day_rule,
-    w4: JSON.parse(row.w4),
+    w4: JSON.parse(row.w4) as Job["w4"],
     stateTax: parse(row.state_tax),
     localTax: parse(row.local_tax),
-    deductions: JSON.parse(row.deductions),
-    employerContributions: JSON.parse(row.employer_contributions),
+    deductions: JSON.parse(row.deductions) as Job["deductions"],
+    employerContributions: JSON.parse(
+      row.employer_contributions
+    ) as Job["employerContributions"],
     bonus: parse(row.bonus),
     depositAccountId: row.deposit_account_id,
     splits: db
@@ -153,10 +155,11 @@ function writeJob(db: DatabaseSync, input: JobInput, id?: number): number {
 }
 
 /** A job's settings without its id and the member's name, for the activity log. */
-function describeJob({ id, memberName, ...input }: Job): JobInput {
-  void id
-  void memberName
-  return input
+function describeJob(job: Job): JobInput {
+  const input: Partial<Job> = { ...job }
+  delete input.id
+  delete input.memberName
+  return input as JobInput
 }
 
 export function createJob(db: DatabaseSync, input: JobInput): Job {
@@ -240,7 +243,7 @@ const toOtherIncome = (row: OtherIncomeRow): OtherIncome => ({
   memberName: row.memberName,
   name: row.name,
   amount: row.amount,
-  schedule: JSON.parse(row.schedule),
+  schedule: JSON.parse(row.schedule) as OtherIncome["schedule"],
   businessDayRule: row.business_day_rule,
   taxable: row.taxable === 1,
   accountId: row.account_id,

@@ -89,7 +89,9 @@ export function SpendingChart({
           content={
             <ChartTooltipContent
               labelFormatter={(_, payload) => {
-                const month = String(payload?.[0]?.payload?.month ?? "")
+                const month =
+                  (payload?.[0]?.payload as { month?: string } | undefined)
+                    ?.month ?? ""
                 return month === current
                   ? `${formatMonth(month, "long")} so far`
                   : formatMonth(month, "long")
@@ -117,14 +119,23 @@ export function SpendingChart({
           shape={(props) => (
             <Rectangle
               {...props}
-              fillOpacity={props.payload?.month === current ? 0.3 : 1}
+              fillOpacity={
+                (props.payload as { month?: string } | undefined)?.month ===
+                current
+                  ? 0.3
+                  : 1
+              }
               stroke={
-                props.payload?.month === current
+                (props.payload as { month?: string } | undefined)?.month ===
+                current
                   ? "var(--color-spent)"
                   : undefined
               }
               strokeDasharray={
-                props.payload?.month === current ? "3 2" : undefined
+                (props.payload as { month?: string } | undefined)?.month ===
+                current
+                  ? "3 2"
+                  : undefined
               }
             />
           )}

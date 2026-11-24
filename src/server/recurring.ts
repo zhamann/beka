@@ -232,7 +232,7 @@ export function linkRecurring(db: DatabaseSync): number {
             // The card's own fee, not coffee or a gym's club fees.
             .filter((t) =>
               /\b(annual|membership|member)\b.*\bfee\b/i.test(
-                `${t.merchant} ${t.description}`
+                `${t.merchant as string} ${t.description as string}`
               )
             )
         : db

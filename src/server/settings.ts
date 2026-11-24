@@ -24,7 +24,9 @@ function readSetting<T>(db: DatabaseSync, key: string, fallback: T): T {
   const row = db
     .prepare("SELECT value FROM settings WHERE key = ?")
     .get(key) as { value: string } | undefined
-  return row ? { ...fallback, ...JSON.parse(row.value) } : fallback
+  return row
+    ? { ...fallback, ...(JSON.parse(row.value) as Partial<T>) }
+    : fallback
 }
 
 export function freshnessRules(db: DatabaseSync): FreshnessRules {

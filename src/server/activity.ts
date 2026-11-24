@@ -91,7 +91,7 @@ export function listActivity(
     entity: row.entity,
     entityId: row.entity_id,
     summary: row.summary,
-    before: row.before === null ? null : JSON.parse(row.before),
-    after: row.after === null ? null : JSON.parse(row.after),
+    before: row.before === null ? null : (JSON.parse(row.before) as unknown),
+    after: row.after === null ? null : (JSON.parse(row.after) as unknown),
   }))
 }

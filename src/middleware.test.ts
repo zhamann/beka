@@ -18,7 +18,7 @@ function context(
 }
 
 const run = async (ctx: Parameters<typeof onRequest>[0]) =>
-  (await onRequest(ctx, async () => new Response("ok"))) as Response
+  (await onRequest(ctx, () => Promise.resolve(new Response("ok")))) as Response
 
 describe("middleware", () => {
   afterEach(() => {
