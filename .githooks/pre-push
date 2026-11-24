@@ -1,0 +1,12 @@
+#!/bin/sh
+# Runs CI's checks before a push. It checks the working tree, so commit first.
+# Skip it with `git push --no-verify`.
+
+# A push that only deletes branches has nothing to check.
+check=
+while read -r _ local_sha _; do
+  case "$local_sha" in *[!0]*) check=1 ;; esac
+done
+[ -n "$check" ] || exit 0
+
+bun ci && bun run check:lockfile && bun run verify
