@@ -16,10 +16,12 @@
     "lint": "tools/lint/node_modules/.bin/bun lint",
     "format": "bun fmt",
     "format:check": "bun fmt --check",
-    "typecheck": "astro check",
+    "typecheck": "astro check --noSync",
     "check:lockfile": "bun tools/check-lockfile.mjs",
     "test": "vitest run",
-    "seed": "node scripts/seed.mjs"
+    "seed": "node scripts/seed.mjs",
+    "verify": "astro sync && bun run --parallel --no-exit-on-error lint typecheck format:check test",
+    "prepare": "[ -n \"$CI\" ] || git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.14",

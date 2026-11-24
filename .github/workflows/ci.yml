@@ -30,15 +30,14 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
-      - run: bun ci
+      - id: install
+        run: bun ci
+      # Each step runs even if the one before it fails, so one run lists every failure.
       - run: bun run check:lockfile
-      # Type-aware rules read the types Astro generates.
-      - run: bun run astro sync
-      - run: bun run lint
-      - run: bun run format:check
-      - run: bun run typecheck
-      - run: bun run test
-      - run: bun run build
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bun run verify
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: bun run build
 
   docker:
     # A release builds and publishes the image itself, so it skips this build.

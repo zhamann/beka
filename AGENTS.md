@@ -14,7 +14,7 @@ The app is built for any household that self-hosts it, so every optional detail 
 
 - `bun dev`: start the dev server.
 - `bun run build` / `bun start`: build and run the production server.
-- `bun run lint`, `bun run format:check`, `bun run typecheck`, `bun run test`: the checks CI runs.
+- `bun run verify`: every check CI runs (types, lint, format, tests). `bun install` turns on Git hooks that format and lint staged files on commit and run `verify` on push. `bun run lint` is the only use of Bun's canary, pinned in `tools/lint`, because `bun lint` isn't in a stable release yet.
 
 ## UI conventions
 
