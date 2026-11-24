@@ -14,11 +14,14 @@ jobs:
   image:
     needs: ci
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Check the tag matches package.json
         run: |
           version="v$(node -p 'require("./package.json").version')"
@@ -56,6 +59,7 @@ jobs:
   release:
     needs: image
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     permissions:
       contents: write
     steps:
