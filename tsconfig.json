@@ -5,6 +5,7 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",
+    "types": ["bun-types/vitest"],
     "paths": {
       "@/*": ["./src/*"]
     }

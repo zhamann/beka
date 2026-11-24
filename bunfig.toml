@@ -54,10 +54,31 @@ no-loss-of-precision = ["error", { ignoreDecimals = false }]
 "@typescript-eslint/no-unused-expressions" = ["error", { allowShortCircuit = false, allowTernary = false }]
 "@typescript-eslint/no-unused-vars" = ["error", { varsIgnorePattern = "(?!)", argsIgnorePattern = "(?!)", caughtErrorsIgnorePattern = "(?!)", destructuredArrayIgnorePattern = "(?!)", ignoreRestSiblings = false }]
 
+# Bun includes these only when the vitest package is installed.
+"vitest/expect-expect" = "error"
+"vitest/hoisted-apis-on-top" = "error"
+"vitest/no-conditional-expect" = "error"
+"vitest/no-conditional-tests" = "error"
+"vitest/no-disabled-tests" = "error"
+"vitest/no-focused-tests" = "error"
+"vitest/no-standalone-expect" = "error"
+"vitest/prefer-snapshot-hint" = "error"
+"vitest/require-awaited-expect-poll" = "error"
+"vitest/require-local-test-context-for-concurrent-snapshots" = "error"
+"vitest/require-mock-type-parameters" = "error"
+"vitest/valid-describe-callback" = "error"
+"vitest/valid-expect" = "error"
+"vitest/valid-expect-in-promise" = "error"
+"vitest/valid-title" = "error"
+"vitest/warn-todo" = "error"
+
 # Correctness rules the code doesn't pass yet.
 "jsx-a11y/click-events-have-key-events" = "off"
 "jsx-a11y/control-has-associated-label" = "off"
 "jsx-a11y/label-has-associated-control" = "off"
 "jsx-a11y/no-noninteractive-element-interactions" = "off"
 "jsx-a11y/prefer-tag-over-role" = "off"
-"vitest/require-to-throw-message" = "off"
+
+[test]
+preload = ["./test/setup.mjs"]
+randomize = true
