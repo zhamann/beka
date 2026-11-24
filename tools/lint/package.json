@@ -1,0 +1,7 @@
+{
+  "name": "lint",
+  "private": true,
+  "devDependencies": {
+    "bun": "1.4.5-canary.20261123.1"
+  }
+}
