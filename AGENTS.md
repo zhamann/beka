@@ -19,7 +19,7 @@ The app is built for any household that self-hosts it, so every optional detail 
 ## UI conventions
 
 - Build UI from shadcn components. Add them with `bunx shadcn@latest add <name>`.
-- Never edit files in `src/components/ui/` or `src/hooks/use-mobile.ts`; they must stay updatable through the CLI, so lint and Prettier skip them.
+- Never edit files in `src/components/ui/` or `src/hooks/use-mobile.ts`; they must stay updatable through the CLI, so lint and formatting skip them.
 - App components compose shadcn components. Their own classes are limited to layout, spacing, and text size; no hand-built controls, menus, dialogs, or one-off colors.
 - To style a link as a button, use `cn(buttonVariants({ ... }))`. `buttonVariants` alone doesn't resolve conflicting classes, so variants like `outline` lose their border.
 - Theme changes belong in `src/styles/global.css` as tokens. Use theme tokens (`primary`, `muted-foreground`, …), never raw colors.

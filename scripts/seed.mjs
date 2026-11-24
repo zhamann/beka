@@ -7,9 +7,13 @@ import { dirname, resolve } from "node:path"
 const args = process.argv.slice(2)
 const file = args.find((arg) => !arg.startsWith("--"))
 const replace = args.includes("--replace")
-const url = args.find((arg) => arg.startsWith("--url="))?.slice(6) ?? "http://localhost:4321"
+const url =
+  args.find((arg) => arg.startsWith("--url="))?.slice(6) ??
+  "http://localhost:4321"
 if (!file) {
-  console.error("Usage: bun seed <seed.json> [--replace] [--url=http://localhost:4321]")
+  console.error(
+    "Usage: bun seed <seed.json> [--replace] [--url=http://localhost:4321]"
+  )
   process.exit(1)
 }
 
