@@ -1,19 +1,7 @@
 version: 2
 updates:
-  # Paused until Dependabot runs Bun 1.4.4 or newer: its 1.4.2 drops every `libc`
-  # tag from bun.lock. To resume, delete this comment and the limit.
-  - package-ecosystem: bun
-    directory: /
-    open-pull-requests-limit: 0
-    schedule:
-      interval: weekly
-    groups:
-      dependencies:
-        patterns: ["*"]
-        update-types: [minor, patch]
-    # The linter's canary (tools/lint) moves by hand.
-    ignore:
-      - dependency-name: bun
+  # Bun packages are updated separately. Dependabot's older Bun drops every `libc` tag
+  # from bun.lock.
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -21,7 +9,3 @@ updates:
     groups:
       actions:
         patterns: ["*"]
-  - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: weekly
